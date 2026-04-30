@@ -2,37 +2,39 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Fixed Ultra CRT</title>
+    <title>Fullscreen CRT</title>
     <style>
-        * { margin: 0; padding: 0; overflow: hidden; }
-        body { 
-            background: #000; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            width: 100vw;
+        /* 1. 바탕화면 자체를 CRT로 만들기 위해 여백 완전 제거 */
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background-color: #000; 
         }
         canvas { 
-            /* 화면에 꽉 차게 하되 비율 유지 (4:3 비율 예시) */
-            max-width: 100%;
-            max-height: 100%;
-            aspect-ratio: 4 / 3;
-            background: #000;
-            box-shadow: 0 0 150px rgba(0, 255, 0, 0.1);
+            display: block; 
+            width: 100vw; 
+            height: 100vh; 
         }
     </style>
 </head>
 <body>
-    <!-- 해상도를 아예 명시적으로 크게 잡음 -->
-    <canvas id="crt" width="1024" height="768"></canvas>
+    <canvas id="crt"></canvas>
 
 <script>
 const canvas = document.getElementById("crt");
 const gl = canvas.getContext("webgl");
 
-// [핵심] 뷰포트를 캔버스 크기에 강제로 맞춤 (이게 없으면 구석에 나옴)
-gl.viewport(0, 0, canvas.width, canvas.height);
+// 2. 창 크기가 바뀌어도 꽉 차게 유지하는 함수
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
 
 const vertex = `
     attribute vec2 position;
@@ -47,58 +49,62 @@ const fragment = `
     precision mediump float;
     varying vec2 vUv;
     uniform float u_time;
+    uniform vec2 u_resolution;
 
-    // 1. 극단적인 렌즈 왜곡 (어안 렌즈 효과 강화)
+    // 3. 화면 전체를 덮는 구형 굴곡 (fisheye)
     vec2 curve(vec2 uv) {
         uv = uv * 2.0 - 1.0;
-        // 왜곡 계수: 숫자를 낮출수록 굴곡이 더 심해짐
-        vec2 offset = abs(uv.yx) / vec2(2.5, 2.0); 
-        uv = uv + uv * offset * offset;
-        // 왜곡된 화면이 잘리지 않도록 전체적으로 살짝 축소
-        return uv * 0.45 + 0.5; 
+        // 해상도 비율에 맞춰 왜곡 보정
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        
+        // 굴곡 강도 (0.1 ~ 0.4 사이에서 조절)
+        float distort = 0.2;
+        uv = uv + uv * dot(uv, uv) * distort;
+        
+        uv.x /= aspect;
+        // 화면에 꽉 차게 보이기 위해 0.85 정도로 스케일 조정 (숫자가 작을수록 꽉 참)
+        return uv * 0.9 + 0.5; 
     }
 
     void main() {
         vec2 uv = curve(vUv);
         
-        // 2. 테두리 절단 및 부드러운 외곽선 (베젤 효과)
-        float mask_edge = smoothstep(0.0, 0.02, uv.x) * smoothstep(1.0, 0.98, uv.x) *
-                         smoothstep(0.0, 0.02, uv.y) * smoothstep(1.0, 0.98, uv.y);
+        // 화면 끝부분 부드러운 페이드 (베젤 효과 제거하고 싶으면 이 조건문 삭제)
+        float mask = smoothstep(0.0, 0.01, uv.x) * smoothstep(1.0, 0.99, uv.x) *
+                     smoothstep(0.0, 0.01, uv.y) * smoothstep(1.0, 0.99, uv.y);
 
         if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
             return;
         }
 
-        // 3. 7색 컬러바 (채도 높임)
+        // 4. 컬러 패턴
         vec3 color;
         float x = uv.x;
-        if (x < 1.0/7.0) color = vec3(0.9, 0.9, 0.9);
-        else if (x < 2.0/7.0) color = vec3(0.9, 0.9, 0.0);
-        else if (x < 3.0/7.0) color = vec3(0.0, 0.9, 0.9);
-        else if (x < 4.0/7.0) color = vec3(0.0, 0.9, 0.0);
-        else if (x < 5.0/7.0) color = vec3(0.9, 0.0, 0.9);
-        else if (x < 6.0/7.0) color = vec3(0.9, 0.0, 0.0);
-        else color = vec3(0.0, 0.0, 0.9);
+        if (x < 1.0/7.0) color = vec3(0.8);
+        else if (x < 2.0/7.0) color = vec3(0.8, 0.8, 0.0);
+        else if (x < 3.0/7.0) color = vec3(0.0, 0.8, 0.8);
+        else if (x < 4.0/7.0) color = vec3(0.0, 0.8, 0.0);
+        else if (x < 5.0/7.0) color = vec3(0.8, 0.0, 0.8);
+        else if (x < 6.0/7.0) color = vec3(0.8, 0.0, 0.0);
+        else color = vec3(0.0, 0.0, 0.8);
 
-        // 4. CRT 효과 세트 (스캔라인 + RGB 입자 + Flicker)
-        // 강한 가로 스캔라인
-        float scanline = sin(uv.y * 800.0) * 0.12;
-        
-        // 미세한 세로 RGB 스트라이프 (그릴 마스크)
-        float grill = sin(uv.x * 1024.0) * 0.08;
+        // 5. 강력한 CRT 효과 (스캔라인 + 노이즈 + RGB)
+        float scanline = sin(uv.y * u_resolution.y * 1.2) * 0.1;
+        float grill = sin(uv.x * u_resolution.x * 1.2) * 0.05;
         
         color -= scanline;
         color += grill;
+        
+        // 지지직거리는 미세 노이즈
+        float noise = fract(sin(dot(uv * u_time, vec2(12.9898,78.233))) * 43758.5453);
+        color += noise * 0.03;
 
-        // 화면 미세 떨림
-        color *= 0.96 + 0.04 * sin(u_time * 120.0);
-
-        // 5. 강력한 비네팅 (구석탱이 어둡게)
-        float vignette = pow(uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y) * 15.0, 0.4);
-        color *= vignette;
-
-        gl_FragColor = vec4(color * mask_edge, 1.0);
+        // 비네팅 (화면 중앙 강조)
+        float vignette = pow(uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y) * 15.0, 0.25);
+        
+        gl_FragColor = vec4(color * vignette * mask, 1.0);
     }
 `;
 
@@ -107,9 +113,6 @@ const compile = (t, s) => {
     const sh = gl.createShader(t);
     gl.shaderSource(sh, s);
     gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(sh));
-    }
     return sh;
 };
 gl.attachShader(program, compile(gl.VERTEX_SHADER, vertex));
@@ -120,17 +123,18 @@ gl.useProgram(program);
 const buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
+
 const pos = gl.getAttribLocation(program, "position");
 gl.enableVertexAttribArray(pos);
 gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 
 const timeLoc = gl.getUniformLocation(program, "u_time");
+const resLoc = gl.getUniformLocation(program, "u_resolution");
 
 function render(t) {
-    // 매 프레임 뷰포트를 강제로 잡아줌 (구석 처박힘 방지)
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(timeLoc, t * 0.001);
+    gl.uniform2f(resLoc, canvas.width, canvas.height);
+    
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(render);
 }
