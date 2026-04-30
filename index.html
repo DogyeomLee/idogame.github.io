@@ -2,113 +2,187 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Retro PC 1999</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Portfolio 1999</title>
     <style>
-        /* [1] 그 시절 감성 폰트와 배경 설정 */
+        /* 1. CRT 및 전체 배경 설정 */
         body {
-            background-color: #c0c0c0; /* 윈도우 98의 칙칙한 회색 */
-            color: #000; /* 검정색 글자 */
-            font-family: 'Courier New', Courier, monospace; /* 타자기 폰트 */
+            background-color: #008080; /* 옛날 윈도우 시그니처 청록색 */
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* CRT 화면 굴곡 및 노이즈 효과 */
+        .crt-screen {
             position: relative;
-        }
-
-        /* [2] 뚱뚱한 모니터의 둥근 왜곡 효과 (핵심) */
-        .crt-container {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            width: 95vw;
+            height: 90vh;
+            background: #c0c0c0;
+            border: 15px solid #333; /* 모니터 베젤 */
+            border-radius: 50px;
             overflow: hidden;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.5), 0 0 50px rgba(0,0,0,0.2);
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
         }
 
-        .crt-container::before {
+        /* 스캔라인 효과 */
+        .crt-screen::before {
             content: " ";
             display: block;
             position: absolute;
             top: 0; left: 0; bottom: 0; right: 0;
-            /* 구부러진 베젤 효과 */
-            background: radial-gradient(
-                circle at center,
-                rgba(255, 255, 255, 0.1) 0%,
-                rgba(0, 0, 0, 0.3) 80%,
-                rgba(0, 0, 0, 0.6) 100%
-            );
-            z-index: 5;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 2px 100%;
+            z-index: 10;
             pointer-events: none;
-            /* 미세하게 구부리는 마법의 속성 */
-            transform: scale(1.02); 
         }
 
-        /* [3] 미세하게 움직이는 스캔라인 효과 */
-        .scanlines {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(
-                rgba(0, 0, 0, 0) 50%, 
-                rgba(0, 0, 0, 0.1) 50%
-            );
-            background-size: 100% 4px; /* 선 굵기 */
-            z-index: 6;
-            pointer-events: none;
-            opacity: 0.8;
-        }
-
-        /* [4] 화면 미세 떨림 효과 */
+        /* 미세한 화면 떨림 */
         .flicker {
-            position: fixed;
+            position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(18, 16, 16, 0.05);
+            background: rgba(18, 16, 16, 0.03);
             opacity: 0;
-            z-index: 7;
+            z-index: 11;
             pointer-events: none;
-            animation: flicker 0.1s infinite;
+            animation: flicker 0.12s infinite;
         }
-
         @keyframes flicker {
             0% { opacity: 0.1; }
-            5% { opacity: 0.2; }
-            10% { opacity: 0.1; }
-            50% { opacity: 0.0; }
-            80% { opacity: 0.1; }
-            100% { opacity: 0.0; }
+            50% { opacity: 0.02; }
+            100% { opacity: 0.08; }
         }
 
-        /* 콘텐츠 스타일 */
-        .content {
-            background-color: #fff; /* 콘텐츠 영역은 흰색 */
-            border: 2px solid #fff;
-            border-right-color: #848484; /* 옛날 3D 테두리 효과 */
-            border-bottom-color: #848484;
-            padding: 20px;
+        /* 2. 윈도우 창 스타일 */
+        .window {
             width: 80%;
-            max-width: 600px;
+            max-width: 700px;
+            background: #c0c0c0;
+            border: 2px solid #fff;
+            border-right-color: #848484;
+            border-bottom-color: #848484;
+            box-shadow: 1px 1px #000;
+            margin: auto;
             z-index: 2;
-            position: relative;
         }
 
-        h1 { font-size: 20px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-        p { font-size: 14px; line-height: 1.6; }
+        .title-bar {
+            background: linear-gradient(90deg, #000080, #1084d0);
+            padding: 3px 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .title-buttons button {
+            width: 18px;
+            height: 16px;
+            font-size: 10px;
+            font-weight: bold;
+            background: #c0c0c0;
+            border: 1px solid #fff;
+            border-right-color: #848484;
+            border-bottom-color: #848484;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .title-buttons button:active {
+            border: 1px solid #848484;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
+        }
+
+        /* 3. 버튼 스타일 (Win98 감성) */
+        .btn-retro {
+            background: #c0c0c0;
+            border: 2px solid #fff;
+            border-right-color: #848484;
+            border-bottom-color: #848484;
+            padding: 5px 15px;
+            font-family: inherit;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .btn-retro:active {
+            border: 2px solid #848484;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
+            padding: 6px 14px 4px 16px; /* 클릭 시 살짝 들어가는 효과 */
+        }
+
+        .window-body {
+            padding: 20px;
+            color: #000;
+        }
+
+        .status-bar {
+            border-top: 1px solid #848484;
+            padding: 2px 5px;
+            font-size: 12px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .inset-panel {
+            border: 1px solid #848484;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
+            padding: 10px;
+            background: #fff;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
-    <!-- 효과 레이어들 -->
-    <div class="crt-container"></div>
-    <div class="scanlines"></div>
+
+<div class="crt-screen">
     <div class="flicker"></div>
     
-    <!-- 실제 내용 -->
-    <div class="content">
-        <h1>어서 오십시오</h1>
-        <p>게임 하십시오...</p>
-        <hr>
-        <p>Last update: 2001-08-30</p>
+    <div class="window">
+        <div class="title-bar">
+            <span>My_Portfolio_v1.0.exe</span>
+            <div class="title-buttons">
+                <button>_</button>
+                <button>□</button>
+                <button onclick="alert('System: Cannot close portfolio!')">X</button>
+            </div>
+        </div>
+        
+        <div class="window-body">
+            <p>Welcome, guest. Please select a category:</p>
+            
+            <div class="inset-panel">
+                <h2 style="font-size: 18px; margin-top: 0;">[ User Profile ]</h2>
+                <p>Status: Seeking Opportunities</p>
+                <p>Skills: HTML, CSS, JavaScript, Retro-Design</p>
+            </div>
+
+            <!-- 하단 버튼들 -->
+            <div class="controls">
+                <button class="btn-retro" onclick="location.href='https://github.com'">GitHub</button>
+                <button class="btn-retro" onclick="alert('Coming Soon!')">Projects</button>
+                <button class="btn-retro" onclick="confirm('Email을 보내시겠습니까?')">Contact</button>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span>Object(s): 3</span>
+            <span>|</span>
+            <span>Capacity: 1.44MB</span>
+        </div>
     </div>
+</div>
+
 </body>
 </html>
