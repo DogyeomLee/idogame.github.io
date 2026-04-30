@@ -56,3 +56,52 @@ body {
     padding: 20px;
     text-shadow: 0 0 5px #33ff33; /* 글자 발광 효과 */
 }
+/* 90년대 윈도우 창 스타일 */
+.portfolio-window {
+    padding: 2px !important; /* 테두리를 위해 여백 조정 */
+    background-color: #c0c0c0 !important;
+    box-shadow: inset 1px 1px #fff, inset -1px -1px #848484, 1px 1px #000;
+}
+
+.window-header {
+    background: linear-gradient(90deg, #000080, #1084d0); /* 윈도우 클래식 블루 */
+    color: white;
+    padding: 3px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.window-buttons button {
+    width: 16px;
+    height: 14px;
+    font-size: 9px;
+    padding: 0;
+    background: #c0c0c0;
+    border: 1px solid #fff;
+    border-right-color: #848484;
+    border-bottom-color: #848484;
+    cursor: pointer;
+}
+
+.window-body {
+    padding: 20px;
+    background: #fff; /* 내부 흰색 배경 */
+    margin: 2px;
+    border: 1px solid #848484;
+    box-shadow: inset 1px 1px #000;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+h2 {
+    font-size: 16px;
+    background: #e0e0e0;
+    padding: 2px 5px;
+    margin-top: 20px;
+}
+
+a { color: #0000ee; }
+a:hover { background: #000; color: #fff; }
