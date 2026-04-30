@@ -2,82 +2,146 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>CRT Screen Concept</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>True CRT Distortion Effect</title>
     <style>
-        /* 1. 배경 설정: 화면 전체를 검게 채웁니다. */
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #000;
             display: flex;
             justify-content: center;
             align-items: center;
+            background-color: #050505; /* 아주 어두운 방 분위기 */
             overflow: hidden;
+            color: white;
+            font-family: sans-serif;
         }
 
-        /* 2. TV 프레임: 화면을 거의 꽉 채우되, 모서리 곡률을 극도로 줄였습니다. */
-        .tv-frame {
-            width: 98vw;
-            height: 98vh;
-            background: #050505; /* 아주 어두운 회색 베젤 */
-            border-radius: 10px; /* 모서리를 아주 살짝만 둥글게 */
+        /* 1. 실제 CRT 모니터 하우징 (외부 프레임) */
+        .crt-monitor-housing {
             position: relative;
+            /* 원본 이미지 비율과 유사하게 설정 (4:3) */
+            width: 85vw;
+            height: 63.75vw; /* 85 * 0.75 */
+            max-width: 1000px;
+            max-height: 750px;
+            
+            background: radial-gradient(circle at center, #222 0%, #111 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 50px rgba(0,0,0,0.9), /* 외부 그림자 */
+                inset 0 2px 5px rgba(255,255,255,0.1); /* 미세한 베젤 하이라이트 */
+            
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: inset 0 0 40px rgba(0,0,0,1);
+            padding: 20px; /* 베젤 두께 */
+            box-sizing: border-box;
         }
 
-        /* 3. 실제 화면 영역: 원본 이미지 특유의 '약간 볼록한' 느낌을 재현합니다. */
-        .screen-area {
-            width: 95%;
-            height: 92%;
-            background-color: #1a1a1a;
+        /* 2. 왜곡 효과를 가할 최종 화면 컨테이너 */
+        .crt-screen-container {
             position: relative;
-            overflow: hidden;
-            border-radius: 40px / 20px; /* 상하좌우 곡률을 다르게 주어 브라운관 느낌 형성 */
-            box-shadow: 0 0 100px rgba(0,0,0,0.5);
-        }
-
-        /* 4. 이미지 배치: image_0be285.jpg 파일이 들어갈 자리 */
-        .content-image {
             width: 100%;
             height: 100%;
-            /* 아래 줄의 경로를 실제 파일명으로 유지하세요. */
-            background-image: url('image_0be285.jpg'); 
-            background-size: cover;
-            background-position: center;
-            /* 지글거림 없이 선명하게 출력 */
-            image-rendering: auto; 
+            background-color: #000;
+            overflow: hidden;
+            
+            /* [핵심 - CSS clip-path] 
+               이 코드가 화면의 형태를 깎아냅니다.
+               border-radius로는 불가능한, 항아리 모양(불룩한 직사각형) 왜곡을 구현합니다.
+               각 모서리 점을 곡선으로 연결하는 방식입니다. */
+            clip-path: polygon(
+                /* Top Edge */
+                10% 0%, 90% 0%, 
+                
+                /* Top-Right Curve */
+                96% 2%, 100% 10%, 
+                
+                /* Right Edge */
+                100% 90%, 
+                
+                /* Bottom-Right Curve */
+                96% 98%, 90% 100%, 
+                
+                /* Bottom Edge */
+                10% 100%, 
+                
+                /* Bottom-Left Curve */
+                4% 98%, 0% 90%, 
+                
+                /* Left Edge */
+                0% 10%, 
+                
+                /* Top-Left Curve */
+                4% 2%
+            );
         }
 
-        /* 5. 비네팅 효과: 화면 가장자리가 어두워지는 원본의 특징 재현 */
-        .vignette {
+        /* 3. 이미지 콘텐츠 (선명하게 유지) */
+        .crt-content {
+            width: 100%;
+            height: 100%;
+            background-image: url('image_0be285.jpg'); /* 원본 이미지 파일명 */
+            background-size: cover;
+            background-position: center;
+            filter: brightness(1.05) contrast(1.1); /* 미세한 화질 조정 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* 4. CRT 물리 효과 오버레이 (지글거림 없음, 깊이감만 추가) */
+        
+        /* 4-1. 브라운관의 볼록한 유리 느낌 (비네팅) */
+        .crt-glass-bulge {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: radial-gradient(
-                ellipse at center, 
-                transparent 50%, 
-                rgba(0,0,0,0.4) 80%, 
-                rgba(0,0,0,0.8) 100%
+                circle at center, 
+                transparent 20%, 
+                rgba(0,0,0,0.3) 60%, 
+                rgba(0,0,0,0.7) 90%, 
+                rgba(0,0,0,0.9) 100%
             );
+            z-index: 5;
             pointer-events: none;
         }
+
+        /* 4-2. 미세한 화면 굴절 효과 (Pincushion effect 보완)
+           이미지가 실제로 중앙이 더 볼록해 보이도록 CSS 렌즈 효과를 아주 약하게 줍니다. */
+        .crt-lens-distortion {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 4;
+            pointer-events: none;
+            backdrop-filter: blur(0.5px); /* 미세한 굴절 */
+            transform: scale(1.02); /* clip-path로 잘린 부분을 보정하기 위해 살짝 확대 */
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="tv-frame">
-        <div class="screen-area">
-            <!-- 실제 이미지가 선명하게 들어가는 부분 -->
-            <div class="content-image"></div>
-            <!-- 화면의 깊이감을 주는 오버레이 -->
-            <div class="vignette"></div>
+    <!-- CRT 모니터 본체 -->
+    <div class="crt-monitor-housing">
+        <!-- 왜곡이 적용되는 화면 영역 -->
+        <div class="crt-screen-container">
+            <!-- 선명한 원본 이미지 -->
+            <div class="crt-content"></div>
+            
+            <!-- CRT 효과 오버레이들 -->
+            <div class="crt-lens-distortion"></div> <!-- 미세한 굴절 -->
+            <div class="crt-glass-bulge"></div>     <!-- 볼록한 유리 느낌 (그라데이션) -->
         </div>
     </div>
 
