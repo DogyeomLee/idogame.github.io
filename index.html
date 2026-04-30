@@ -2,127 +2,153 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Retro Portfolio - Stable Version</title>
+    <title>Curved CRT Portfolio</title>
     <style>
         * { margin: 0; padding: 0; overflow: hidden; }
-        body { 
-            background-color: #000; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 100vh; width: 100vw;
+        body, html { 
+            width: 100%; height: 100%; 
+            background-color: #050505; 
+            display: flex; justify-content: center; align-items: center;
         }
-        #screen-container {
+        /* 화면을 실제 모니터처럼 보이게 하는 컨테이너 */
+        #monitor {
             position: relative;
-            width: 800px;
-            height: 600px;
-            border: 10px solid #333;
-            border-radius: 20px;
-            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 100px rgba(0,0,0,0.5);
+            width: 90vw;
+            height: 67.5vw; /* 4:3 비율 */
+            max-width: 1000px;
+            max-height: 750px;
             background: #000;
-            overflow: hidden;
+            border-radius: 50px; /* 모서리를 둥글게 */
+            box-shadow: 0 0 100px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05);
+            padding: 20px;
+            border: 15px solid #1a1a1a;
         }
-        canvas { width: 100%; height: 100%; cursor: pointer; }
-        /* CRT 주사선 효과를 위한 오버레이 레이어 */
-        #overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 3px, 3px 100%;
-            pointer-events: none; /* 클릭 통과 */
+        canvas { 
+            width: 100%; height: 100%; 
+            display: block; 
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div id="screen-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="overlay"></div>
+    <div id="monitor">
+        <canvas id="crt"></canvas>
     </div>
 
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById("crt");
+const gl = canvas.getContext("webgl");
 
-// 캔버스 크기 고정 (고전 게임 해상도)
-canvas.width = 800;
-canvas.height = 600;
+// 텍스처를 그릴 고해상도 가상 캔버스
+const textCanvas = document.createElement("canvas");
+const tCtx = textCanvas.getContext("2d");
+textCanvas.width = 1024;
+textCanvas.height = 768;
 
 let page = 0;
-const data = [
-    {
-        title: "CHARACTER INFO",
-        items: ["NAME: HONG GIL DONG", "JOB: FULL-STACK DEV", "LOC: SEOUL, KOREA"],
-        stats: [["LOGIC", 95], ["DESIGN", 80], ["SPEED", 88]]
-    },
-    {
-        title: "SKILL INVENTORY",
-        items: ["TECH: REACT, NEXT.JS", "ENGINE: WEBGL, CANVAS", "TOOL: DOCKER, GIT"],
-        stats: [["POWER", 90], ["MP", 100], ["LUCK", 75]]
-    }
+const pages = [
+    { title: "CHARACTER PROFILE", name: "USER", job: "DEVELOPER", stats: [["LOGIC", 92], ["HTML", 85]] },
+    { title: "EQUIPMENT SLOT", name: "GEAR", job: "DESIGNER", stats: [["WEBGL", 90], ["CSS", 98]] }
 ];
 
-function draw() {
-    const current = data[page];
+function drawUI() {
+    tCtx.fillStyle = "#000040"; 
+    tCtx.fillRect(0, 0, 1024, 768);
     
-    // 1. 배경 (삼국지 특유의 딥 네이비)
-    ctx.fillStyle = "#000525";
-    ctx.fillRect(0, 0, 800, 600);
+    // 고전 금색 테두리
+    tCtx.strokeStyle = "#aa8800"; tCtx.lineWidth = 20;
+    tCtx.strokeRect(40, 40, 944, 688);
+    
+    const d = pages[page];
+    tCtx.fillStyle = "#aa8800"; tCtx.fillRect(40, 40, 944, 80);
+    tCtx.fillStyle = "#fff"; tCtx.font = "bold 40px monospace"; tCtx.textAlign = "center";
+    tCtx.fillText(d.title, 512, 95);
 
-    // 2. 고전적인 금색 이중 테두리
-    ctx.strokeStyle = "#860";
-    ctx.lineWidth = 10;
-    ctx.strokeRect(15, 15, 770, 570);
-    ctx.strokeStyle = "#fb0";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(25, 25, 750, 550);
+    tCtx.textAlign = "left";
+    tCtx.fillText(`NAME : ${d.name}`, 100, 250);
+    tCtx.fillText(`JOB  : ${d.job}`, 100, 330);
 
-    // 3. 상단 타이틀 바
-    ctx.fillStyle = "#860";
-    ctx.fillRect(25, 25, 750, 50);
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 28px 'Courier New'";
-    ctx.textAlign = "center";
-    ctx.fillText(current.title, 400, 60);
-
-    // 4. 정보 텍스트 (선명도 최우선)
-    ctx.textAlign = "left";
-    ctx.font = "bold 24px monospace";
-    current.items.forEach((text, i) => {
-        ctx.fillStyle = "#fff";
-        ctx.fillText(text, 80, 150 + (i * 50));
+    d.stats.forEach((s, i) => {
+        tCtx.fillText(s[0], 100, 500 + i*80);
+        tCtx.fillStyle = "#222"; tCtx.fillRect(350, 470 + i*80, 400, 40);
+        tCtx.fillStyle = "#0ff"; tCtx.fillRect(350, 470 + i*80, s[1]*4, 40);
+        tCtx.fillStyle = "#fff";
     });
-
-    // 5. 능력치 바
-    current.stats.forEach((s, i) => {
-        let y = 350 + (i * 60);
-        ctx.fillStyle = "#aaa";
-        ctx.fillText(s[0], 80, y);
-        
-        ctx.fillStyle = "#111";
-        ctx.fillRect(250, y - 20, 400, 25);
-        ctx.fillStyle = "#0ff";
-        ctx.fillRect(250, y - 20, s[1] * 4, 25);
-        
-        ctx.fillStyle = "#fff";
-        ctx.fillText(s[1], 670, y);
-    });
-
-    // 6. 클릭 가이드 (깜빡임)
-    if (Math.floor(Date.now() / 600) % 2 === 0) {
-        ctx.fillStyle = "#ff0";
-        ctx.textAlign = "center";
-        ctx.font = "20px monospace";
-        ctx.fillText(">> PRESS START (CLICK ANYWHERE) <<", 400, 560);
-    }
-
-    requestAnimationFrame(draw);
 }
 
-// 클릭 이벤트
-canvas.addEventListener('click', () => {
-    page = (page + 1) % data.length;
-});
+canvas.addEventListener('click', () => { page = (page + 1) % pages.length; });
 
-// 시작
-draw();
+const vs = `attribute vec2 p; varying vec2 v; void main(){v=(p+1.)*.5; gl_Position=vec4(p,0,1);}`;
+const fs = `
+    precision mediump float;
+    varying vec2 v;
+    uniform sampler2D t;
+    uniform float time;
+
+    // 볼록 렌즈 왜곡 함수 (Fish-eye 효과)
+    vec2 distort(vec2 uv) {
+        uv = uv * 2.0 - 1.0;
+        float r = length(uv);
+        // 볼록하게 휘어지는 정도 조절
+        uv *= 1.0 + 0.22 * pow(r, 2.0); 
+        return uv * 0.85 + 0.5;
+    }
+
+    void main() {
+        vec2 uv = distort(v);
+        // 화면 가장자리를 둥글게 깎음 (Vignette + Border)
+        if(uv.x<0.0 || uv.x>1.0 || uv.y<0.0 || uv.y>1.0) {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+
+        vec2 fUv = vec2(uv.x, 1.0 - uv.y);
+        vec3 color = texture2D(t, fUv).rgb;
+
+        // 주사선(Scanline) 효과를 아주 진하게
+        float scan = sin(uv.y * 800.0) * 0.08;
+        color -= scan;
+
+        // 유리관 광택 효과 (가운데는 밝고 모서리는 어둡게)
+        float lens = 1.0 - length(uv - 0.5) * 0.8;
+        color *= lens;
+
+        // 미세한 RGB 분리
+        color.r = texture2D(t, fUv + vec2(0.001, 0.0)).r;
+        color.b = texture2D(t, fUv - vec2(0.001, 0.0)).b;
+
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
+
+const prog = gl.createProgram();
+const sh = (type, src) => {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    gl.attachShader(prog, s);
+};
+sh(gl.VERTEX_SHADER, vs); sh(gl.FRAGMENT_SHADER, fs);
+gl.linkProgram(prog); gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
+const pLoc = gl.getAttribLocation(prog, "p");
+gl.enableVertexAttribArray(pLoc);
+gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0);
+
+const tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+function loop(t) {
+    drawUI();
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textCanvas);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(loop);
+}
+loop(0);
 </script>
 </body>
 </html>
