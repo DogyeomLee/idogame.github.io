@@ -2,170 +2,127 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Fixed Retro Portfolio</title>
+    <title>Retro Portfolio - Stable Version</title>
     <style>
         * { margin: 0; padding: 0; overflow: hidden; }
-        body, html { 
-            width: 100%; height: 100%; 
+        body { 
             background-color: #000; 
-            display: flex; justify-content: center; align-items: center;
+            display: flex; justify-content: center; align-items: center; 
+            height: 100vh; width: 100vw;
         }
-        canvas { 
-            display: block; 
-            aspect-ratio: 4 / 3;
-            height: 98vh; 
-            width: auto;
-            cursor: pointer;
+        #screen-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 10px solid #333;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 100px rgba(0,0,0,0.5);
+            background: #000;
+            overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; cursor: pointer; }
+        /* CRT 주사선 효과를 위한 오버레이 레이어 */
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none; /* 클릭 통과 */
         }
     </style>
 </head>
 <body>
-    <canvas id="crt"></canvas>
+    <div id="screen-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay"></div>
+    </div>
 
 <script>
-const canvas = document.getElementById("crt");
-const gl = canvas.getContext("webgl");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-const textCanvas = document.createElement("canvas");
-const tCtx = textCanvas.getContext("2d");
-// 해상도를 높여서 렌더링 (글자 깨짐 방지)
-textCanvas.width = 1024;
-textCanvas.height = 768;
+// 캔버스 크기 고정 (고전 게임 해상도)
+canvas.width = 800;
+canvas.height = 600;
 
-let currentPage = 0;
-const pages = [
+let page = 0;
+const data = [
     {
-        title: "CHARACTER PROFILE",
-        info: { name: "사용자 (USER)", class: "WEB DEVELOPER", area: "KOREA" },
-        stats: [["JAVASCRIPT", 92], ["WEBGL", 85], ["DESIGN", 80]]
+        title: "CHARACTER INFO",
+        items: ["NAME: HONG GIL DONG", "JOB: FULL-STACK DEV", "LOC: SEOUL, KOREA"],
+        stats: [["LOGIC", 95], ["DESIGN", 80], ["SPEED", 88]]
     },
     {
-        title: "TECHNICAL SKILLS",
-        info: { name: "SKILL TREE", class: "FRONT-END MAGE", area: "SEOUL" },
-        stats: [["REACT", 90], ["TYPESCRIPT", 82], ["CSS", 95]]
+        title: "SKILL INVENTORY",
+        items: ["TECH: REACT, NEXT.JS", "ENGINE: WEBGL, CANVAS", "TOOL: DOCKER, GIT"],
+        stats: [["POWER", 90], ["MP", 100], ["LUCK", 75]]
     }
 ];
 
-function drawUI() {
-    const data = pages[currentPage];
-    // 배경: 삼국지 특유의 암청색
-    tCtx.fillStyle = "#000520"; 
-    tCtx.fillRect(0, 0, 1024, 768);
+function draw() {
+    const current = data[page];
     
-    // 테두리: 골드 & 옐로우
-    tCtx.strokeStyle = "#850";
-    tCtx.lineWidth = 12;
-    tCtx.strokeRect(20, 20, 984, 728);
-    tCtx.strokeStyle = "#fb0";
-    tCtx.lineWidth = 2;
-    tCtx.strokeRect(35, 35, 954, 698);
+    // 1. 배경 (삼국지 특유의 딥 네이비)
+    ctx.fillStyle = "#000525";
+    ctx.fillRect(0, 0, 800, 600);
 
-    // 제목 바
-    tCtx.fillStyle = "#850";
-    tCtx.fillRect(35, 35, 954, 60);
-    tCtx.fillStyle = "#fff";
-    tCtx.font = "bold 32px sans-serif";
-    tCtx.textAlign = "center";
-    tCtx.fillText(data.title, 512, 75);
+    // 2. 고전적인 금색 이중 테두리
+    ctx.strokeStyle = "#860";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(15, 15, 770, 570);
+    ctx.strokeStyle = "#fb0";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(25, 25, 750, 550);
 
-    // 본문 (굵은 폰트로 변경)
-    tCtx.textAlign = "left";
-    tCtx.font = "bold 30px sans-serif";
-    tCtx.fillStyle = "#fff";
-    tCtx.fillText(`NAME  : ${data.info.name}`, 100, 200);
-    tCtx.fillText(`CLASS : ${data.info.class}`, 100, 270);
-    tCtx.fillText(`AREA  : ${data.info.area}`, 100, 340);
+    // 3. 상단 타이틀 바
+    ctx.fillStyle = "#860";
+    ctx.fillRect(25, 25, 750, 50);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 28px 'Courier New'";
+    ctx.textAlign = "center";
+    ctx.fillText(current.title, 400, 60);
 
-    // 게이지 바
-    data.stats.forEach((s, i) => {
-        let y = 450 + (i * 80);
-        tCtx.fillStyle = "#ccc";
-        tCtx.fillText(s[0], 100, y);
-        tCtx.fillStyle = "#111";
-        tCtx.fillRect(350, y - 25, 400, 30);
-        tCtx.fillStyle = "#0ff";
-        tCtx.fillRect(350, y - 25, s[1] * 4, 30);
-        tCtx.fillStyle = "#fff";
-        tCtx.fillText(s[1].toString(), 770, y);
+    // 4. 정보 텍스트 (선명도 최우선)
+    ctx.textAlign = "left";
+    ctx.font = "bold 24px monospace";
+    current.items.forEach((text, i) => {
+        ctx.fillStyle = "#fff";
+        ctx.fillText(text, 80, 150 + (i * 50));
     });
 
-    // 깜빡이는 안내문구
-    if (Math.floor(Date.now() / 500) % 2 === 0) {
-        tCtx.fillStyle = "#ff0";
-        tCtx.font = "bold 25px sans-serif";
-        tCtx.fillText(">> CLICK TO VIEW NEXT <<", 350, 715);
-    }
-}
-
-canvas.addEventListener('click', () => { currentPage = (currentPage + 1) % pages.length; });
-
-const vertex = `
-    attribute vec2 position;
-    varying vec2 vUv;
-    void main() {
-        vUv = (position + 1.0) * 0.5;
-        gl_Position = vec4(position, 0.0, 1.0);
-    }
-`;
-
-const fragment = `
-    precision mediump float;
-    varying vec2 vUv;
-    uniform sampler2D u_texture;
-    uniform float u_time;
-
-    void main() {
-        // 뒤집힘 방지 및 텍스처 좌표 (왜곡 제거하여 글자 선명도 확보)
-        vec2 uv = vec2(vUv.x, 1.0 - vUv.y);
+    // 5. 능력치 바
+    current.stats.forEach((s, i) => {
+        let y = 350 + (i * 60);
+        ctx.fillStyle = "#aaa";
+        ctx.fillText(s[0], 80, y);
         
-        // 원본 색상 (겹침 효과 제거)
-        vec3 color = texture2D(u_texture, uv).rgb;
+        ctx.fillStyle = "#111";
+        ctx.fillRect(250, y - 20, 400, 25);
+        ctx.fillStyle = "#0ff";
+        ctx.fillRect(250, y - 20, s[1] * 4, 25);
+        
+        ctx.fillStyle = "#fff";
+        ctx.fillText(s[1], 670, y);
+    });
 
-        // 아주 미세한 스캔라인만 배경에 입힘
-        float scanline = sin(uv.y * 600.0) * 0.02;
-        color -= scanline;
-
-        // 비네팅 (가장자리 분위기)
-        float vignette = pow(vUv.x * vUv.y * (1.0 - vUv.x) * (1.0 - vUv.y) * 15.0, 0.15);
-        color *= (vignette + 0.1);
-
-        gl_FragColor = vec4(color, 1.0);
+    // 6. 클릭 가이드 (깜빡임)
+    if (Math.floor(Date.now() / 600) % 2 === 0) {
+        ctx.fillStyle = "#ff0";
+        ctx.textAlign = "center";
+        ctx.font = "20px monospace";
+        ctx.fillText(">> PRESS START (CLICK ANYWHERE) <<", 400, 560);
     }
-`;
 
-function createShader(gl, type, source) {
-    const s = gl.createShader(type);
-    gl.shaderSource(s, source); gl.compileShader(s);
-    return s;
+    requestAnimationFrame(draw);
 }
 
-const program = gl.createProgram();
-gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertex));
-gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragment));
-gl.linkProgram(program); gl.useProgram(program);
+// 클릭 이벤트
+canvas.addEventListener('click', () => {
+    page = (page + 1) % data.length;
+});
 
-const buffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
-const pos = gl.getAttribLocation(program, "position");
-gl.enableVertexAttribArray(pos);
-gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-
-const texture = gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D, texture);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-function render(t) {
-    drawUI();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textCanvas);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-    requestAnimationFrame(render);
-}
-render();
+// 시작
+draw();
 </script>
 </body>
 </html>
