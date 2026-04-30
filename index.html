@@ -2,16 +2,16 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>K-Retro Game CRT Fullscreen</title>
+    <title>Classic K-Game Portfolio</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@900&display=swap');
+        /* 한글 궁서체 및 레트로 폰트 설정 */
+        @import url('https://fonts.googleapis.com/css2?family=Gungsuh&family=Press+Start+2P&display=swap');
 
         :root {
-            --dancheong-red: #c0392b;
-            --dancheong-green: #27ae60;
-            --dancheong-blue: #2980b9;
-            --dancheong-gold: #f1c40f;
-            --crt-bg: #110a1a;
+            --bg-dark: #0a0a0a;
+            --main-gold: #b39151; /* 절제된 고전 금색 */
+            --sub-white: #d1d1d1;
+            --crt-glow: rgba(179, 145, 81, 0.05);
         }
 
         body, html {
@@ -24,165 +24,163 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            font-family: 'Gungsuh', '궁서', serif;
         }
 
-        /* 1. 화면 크기를 브라우저 가득 채우기 (4:3 비율 유지하며 최대화) */
+        /* 1. 화면 레이아웃 (4:3 비율 최대화) */
         .monitor-frame {
             position: relative;
-            width: 95vw;
-            height: calc(95vw * 0.75);
-            max-height: 95vh;
-            max-width: calc(95vh * 1.33);
-            background: var(--crt-bg);
-            border: 15px solid #222;
-            border-radius: 20px;
-            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 100px rgba(0,0,0,0.8);
+            width: 98vw;
+            height: calc(98vw * 0.75);
+            max-height: 98vh;
+            max-width: calc(98vh * 1.33);
+            background: var(--bg-dark);
+            border: 2px solid #222;
+            box-shadow: 0 0 100px rgba(0,0,0,1);
             overflow: hidden;
-        }
-
-        /* 2. CRT 볼록 렌즈 효과 및 단청 테두리 */
-        .screen {
-            position: relative;
-            width: 100%;
-            height: 100%;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
-            border: 20px solid transparent;
-            /* 한국적 단청 문양 테두리 (CSS 패턴) */
-            border-image: repeating-linear-gradient(45deg, 
-                var(--dancheong-red), var(--dancheong-red) 10px, 
-                var(--dancheong-green) 10px, var(--dancheong-green) 20px,
-                var(--dancheong-blue) 20px, var(--dancheong-blue) 30px
-            ) 20;
-            padding: 30px;
         }
 
-        /* 3. CRT 물리 필터 (스캔라인 + 노이즈) */
+        /* 2. CRT 물리적 왜곡 및 필터 */
         .crt-filter {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: 
+                /* 미세한 주사선 */
                 linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%),
-                radial-gradient(circle, transparent 40%, rgba(0,0,0,0.4) 100%);
-            background-size: 100% 4px, cover;
+                /* 외곽 비네팅 (볼록한 느낌) */
+                radial-gradient(circle, transparent 60%, rgba(0,0,0,0.7) 120%);
+            background-size: 100% 3px, cover;
             z-index: 10;
             pointer-events: none;
-            opacity: 0.8;
         }
 
-        /* 4. 한국적 UI 스타일 */
-        .k-header {
+        /* 3. 메인 화면 구성 */
+        .screen {
+            flex: 1;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #1a1a1a;
+            position: relative;
+        }
+
+        /* 헤더: 고전 게임 서체 스타일 */
+        .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            color: var(--dancheong-gold);
-            font-family: 'Press Start 2P', cursive;
-            border-bottom: 4px solid var(--dancheong-gold);
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-            text-shadow: 3px 3px #000;
+            color: var(--main-gold);
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--main-gold);
+            padding-bottom: 10px;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+        }
+
+        /* 타이틀: 묵직한 궁서체 */
+        .title-container {
+            text-align: center;
+            margin-bottom: 60px;
         }
 
         .main-title {
-            font-family: 'Noto Sans KR', sans-serif;
-            font-weight: 900;
-            font-size: 4rem;
-            color: #fff;
-            text-align: center;
-            margin: 20px 0;
-            text-shadow: 5px 5px 0px var(--dancheong-red), 10px 10px 0px var(--dancheong-blue);
-            letter-spacing: -2px;
+            font-size: 5rem;
+            color: var(--sub-white);
+            text-shadow: 0 0 20px rgba(179, 145, 81, 0.3);
+            margin: 0;
+            font-weight: normal;
         }
 
-        .menu-container {
+        .sub-title {
+            color: var(--main-gold);
+            font-size: 1.5rem;
+            margin-top: 10px;
+            letter-spacing: 10px;
+        }
+
+        /* 메뉴: 절제된 단색 디자인 */
+        .menu-list {
             display: flex;
             flex-direction: column;
-            gap: 15px;
             align-items: center;
-            margin-top: 20px;
+            gap: 25px;
         }
 
         .menu-item {
-            width: 80%;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 3px solid var(--dancheong-green);
-            color: #fff;
-            font-family: 'Noto Sans KR', sans-serif;
-            font-weight: 700;
-            font-size: 1.5rem;
-            text-align: center;
+            color: var(--sub-white);
+            font-size: 2rem;
+            text-decoration: none;
             cursor: pointer;
-            transition: all 0.2s;
-            clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); /* 한국적 기와 느낌의 변형 */
+            transition: 0.3s;
+            position: relative;
+            padding: 5px 40px;
         }
 
+        /* 메뉴 선택 시 고전적인 꺽쇠 표시 */
         .menu-item:hover {
-            background: var(--dancheong-gold);
-            color: #000;
-            transform: scale(1.05);
+            color: var(--main-gold);
         }
 
-        /* 하단 장식 문양 */
-        .taegeuk-deco {
-            margin-top: auto;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-        }
-
-        .circle {
-            width: 40px; height: 40px; border-radius: 50%;
-            background: linear-gradient(to bottom, #c0392b 50%, #2980b9 50%);
-            animation: rotate 2s infinite linear;
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .scanline-move {
+        .menu-item:hover::before {
+            content: "◈";
             position: absolute;
-            width: 100%;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            top: -10px;
-            animation: scanline 8s linear infinite;
-            z-index: 11;
+            left: 0;
+            color: var(--main-gold);
+        }
+        .menu-item:hover::after {
+            content: "◈";
+            position: absolute;
+            right: 0;
+            color: var(--main-gold);
         }
 
-        @keyframes scanline {
-            0% { top: -10%; }
-            100% { top: 110%; }
+        /* 하단 푸터 */
+        .footer {
+            margin-top: auto;
+            text-align: center;
+            color: #444;
+            font-size: 1rem;
+            letter-spacing: 5px;
         }
+
+        /* 화면 깜빡임 효과 */
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            5% { opacity: 0.95; }
+            10% { opacity: 0.9; }
+            15% { opacity: 0.95; }
+            20% { opacity: 0.98; }
+            100% { opacity: 1; }
+        }
+        .screen { animation: flicker 0.1s infinite; }
+
     </style>
 </head>
 <body>
 
 <div class="monitor-frame">
     <div class="crt-filter"></div>
-    <div class="scanline-move"></div>
     
     <div class="screen">
-        <div class="k-header">
-            <span>서기 2026년</span>
-            <span>개발자 홍길동</span>
+        <div class="header">
+            <span>西紀 二千二十六年</span> <!-- 서기 2026년 한자 병기 -->
+            <span>開發者 洪吉童</span>    <!-- 개발자 홍길동 한자 병기 -->
         </div>
 
-        <div class="main-title">개발 포트폴리오</div>
-
-        <div class="menu-container">
-            <div class="menu-item">제 1 장: 언리얼 엔진의 기록</div>
-            <div class="menu-item">제 2 장: 웹 기술 연대기</div>
-            <div class="menu-item">제 3 장: 연락용 서신 (MAIL)</div>
+        <div class="title-container">
+            <h1 class="main-title">홍길동 포트폴리오</h1>
+            <div class="sub-title">無 限 創 造</div>
         </div>
 
-        <div class="taegeuk-deco">
-            <div class="circle"></div>
-            <div style="color: var(--dancheong-gold); font-family: 'Press Start 2P'; font-size: 10px; line-height: 40px;">INSERT COIN</div>
-            <div class="circle"></div>
+        <div class="menu-list">
+            <div class="menu-item">기술 연대기 (技術 年代記)</div>
+            <div class="menu-item">진행 프로젝트 (進行 課題)</div>
+            <div class="menu-item">서신 보내기 (書信 傳達)</div>
+        </div>
+
+        <div class="footer">
+            ⓒ 2026 GILDONG WORKS ALL RIGHTS RESERVED.
         </div>
     </div>
 </div>
