@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>90s Retro Game Portfolio</title>
+    <title>90s Retro Game Portfolio - Clear CRT</title>
     <style>
         * { margin: 0; padding: 0; overflow: hidden; }
         body, html { 
@@ -13,9 +13,9 @@
         canvas { 
             display: block; 
             aspect-ratio: 4 / 3;
-            height: 100vh; 
+            height: 98vh; /* 화면에 더 꽉 차게 조절 */
             width: auto;
-            cursor: pointer; /* 클릭 가능하다는 표시 */
+            cursor: pointer;
         }
     </style>
 </head>
@@ -24,14 +24,14 @@
 
 <script>
 const canvas = document.getElementById("crt");
-const gl = canvas.getContext("webgl");
+const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
 
+// --- 고해상도 텍스트 캔버스 (글자 깨짐 방지 핵심) ---
 const textCanvas = document.createElement("canvas");
 const tCtx = textCanvas.getContext("2d");
-textCanvas.width = 1024;
-textCanvas.height = 768;
+textCanvas.width = 2048; 
+textCanvas.height = 1536;
 
-// --- 페이지 데이터 연동 ---
 let currentPage = 0;
 const pages = [
     {
@@ -65,60 +65,58 @@ function drawClassicUI() {
     
     // 배경 (고전 게임 특유의 딥 블루)
     tCtx.fillStyle = "#000033"; 
-    tCtx.fillRect(0, 0, 1024, 768);
+    tCtx.fillRect(0, 0, 2048, 1536);
     
     // 이중 금색 테두리
     tCtx.strokeStyle = "#aa8800";
-    tCtx.lineWidth = 10;
-    tCtx.strokeRect(20, 20, 984, 728);
-    tCtx.lineWidth = 2;
+    tCtx.lineWidth = 20;
+    tCtx.strokeRect(40, 40, 1968, 1456);
+    tCtx.lineWidth = 4;
     tCtx.strokeStyle = "#ffcc00";
-    tCtx.strokeRect(35, 35, 954, 698);
+    tCtx.strokeRect(70, 70, 1908, 1396);
 
     // 상단 제목 바
     tCtx.fillStyle = "#aa8800";
-    tCtx.fillRect(35, 35, 954, 60);
+    tCtx.fillRect(70, 70, 1908, 120);
     tCtx.fillStyle = "#000";
-    tCtx.font = "bold 35px 'Courier New', monospace";
+    tCtx.font = "bold 70px 'Courier New', monospace";
     tCtx.textAlign = "center";
-    tCtx.fillText(data.title, 512, 78);
+    tCtx.fillText(data.title, 1024, 155);
 
-    // 텍스트 정보 (한자 제거)
+    // 텍스트 정보
     tCtx.textAlign = "left";
     tCtx.fillStyle = "#fff";
-    tCtx.font = "30px 'Courier New', monospace";
+    tCtx.font = "60px 'Courier New', monospace";
     
-    tCtx.fillText(`NAME  : ${data.name}`, 80, 180);
-    tCtx.fillText(`CLASS : ${data.job}`, 80, 240);
-    tCtx.fillText(`AREA  : ${data.loc}`, 80, 300);
+    tCtx.fillText(`NAME  : ${data.name}`, 160, 360);
+    tCtx.fillText(`CLASS : ${data.job}`, 160, 480);
+    tCtx.fillText(`AREA  : ${data.loc}`, 160, 600);
     
     // 능력치 게이지
     data.stats.forEach((s, i) => {
-        let y = 400 + (i * 70);
+        let y = 800 + (i * 140);
         tCtx.fillStyle = "#ccc";
-        tCtx.fillText(s.label, 80, y);
+        tCtx.fillText(s.label, 160, y);
         
         tCtx.fillStyle = "#222";
-        tCtx.fillRect(350, y - 25, 400, 30); // 배경
-        tCtx.fillStyle = "#00ffff"; // 고전적인 시안 블루 게이지
-        tCtx.fillRect(350, y - 25, s.val * 4, 30);
+        tCtx.fillRect(700, y - 50, 800, 60); // 배경
+        tCtx.fillStyle = "#00ffff"; 
+        tCtx.fillRect(700, y - 50, s.val * 8, 60);
         tCtx.fillStyle = "#fff";
-        tCtx.fillText(s.val, 770, y);
+        tCtx.fillText(s.val.toString(), 1550, y);
     });
 
-    // 하단 안내
-    tCtx.fillStyle = (Math.floor(Date.now() / 500) % 2) ? "#ffff00" : "transparent"; // 깜빡임 효과
-    tCtx.font = "25px 'Courier New', monospace";
-    tCtx.fillText(">> CLICK TO NEXT PAGE <<", 330, 715);
+    // 하단 안내 (깜빡임)
+    tCtx.textAlign = "center";
+    tCtx.fillStyle = (Math.floor(Date.now() / 500) % 2) ? "#ffff00" : "#555500";
+    tCtx.font = "50px 'Courier New', monospace";
+    tCtx.fillText(">> CLICK TO NEXT PAGE <<", 1024, 1430);
 }
 
-// 클릭 시 페이지 전환
 canvas.addEventListener('click', () => {
     currentPage = (currentPage + 1) % pages.length;
-    drawClassicUI();
 });
 
-// --- WebGL / CRT Shader 영역 ---
 const vertex = `
     attribute vec2 position;
     varying vec2 vUv;
@@ -129,17 +127,17 @@ const vertex = `
 `;
 
 const fragment = `
-    precision mediump float;
+    precision highp float;
     varying vec2 vUv;
     uniform float u_time;
     uniform sampler2D u_texture;
 
-    // 강력한 구형 왜곡 (CRT 굴곡)
+    // 가독성을 확보한 곡률 (수치 최적화)
     vec2 curve(vec2 uv) {
         uv = uv * 2.0 - 1.0;
-        vec2 offset = abs(uv.yx) / vec2(4.0, 3.5); 
+        vec2 offset = abs(uv.yx) / vec2(6.0, 5.0); 
         uv = uv + uv * offset * offset;
-        return uv * 0.95 + 0.5;
+        return uv * 0.96 + 0.5;
     }
 
     void main() {
@@ -151,29 +149,24 @@ const fragment = `
             return;
         }
 
-        // 텍스처 샘플링
         vec3 color = texture2D(u_texture, flippedUv).rgb;
 
-        // 1. 강한 스캔라인 (움직임 추가)
-        float scanline = sin(uv.y * 800.0 + u_time * 5.0) * 0.12;
+        // 1. 미세한 스캔라인 (가독성 위해 얇게)
+        float scanline = sin(uv.y * 1000.0) * 0.04;
         color -= scanline;
 
-        // 2. 미세한 지지직거림 (Noise)
-        float noise = fract(sin(dot(uv * u_time, vec2(12.9898, 78.233))) * 43758.5453);
-        color += noise * 0.04;
+        // 2. 아주 미세한 RGB Shift (번짐 최소화)
+        float r = texture2D(u_texture, flippedUv + vec2(0.0005, 0.0)).r;
+        float b = texture2D(u_texture, flippedUv - vec2(0.0005, 0.0)).b;
+        color.r = r;
+        color.b = b;
 
-        // 3. 색상 번짐 (RGB Shift)
-        float r = texture2D(u_texture, flippedUv + vec2(0.001, 0.0)).r;
-        float b = texture2D(u_texture, flippedUv - vec2(0.001, 0.0)).b;
-        color.r = r * 1.1;
-        color.b = b * 1.1;
+        // 3. 비네팅
+        float vignette = pow(uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y) * 15.0, 0.2);
+        color *= (vignette + 0.1);
 
-        // 4. 비네팅 (구석탱이 어둡게)
-        float vignette = pow(uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y) * 15.0, 0.25);
-        color *= vignette;
-
-        // 5. 밝기 보정 및 깜빡임
-        color *= 1.0 + 0.01 * sin(u_time * 100.0);
+        // 4. 아주 미세한 깜빡임
+        color *= 1.0 + 0.01 * sin(u_time * 50.0);
 
         gl_FragColor = vec4(color, 1.0);
     }
@@ -206,7 +199,7 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 const timeLoc = gl.getUniformLocation(program, "u_time");
 
 function render(t) {
-    drawClassicUI(); // 매 프레임 UI 업데이트 (하단 깜빡임 등 위해)
+    drawClassicUI(); 
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textCanvas);
     gl.uniform1f(timeLoc, t * 0.001);
