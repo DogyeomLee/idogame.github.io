@@ -2,104 +2,154 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Retro CRT Terminal</title>
+    <title>CRT Terminal Fullscreen</title>
     <style>
+        /* 1. 배경을 검정으로 고정하고 여백 제거 */
         body {
-            background-color: #050505;
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
         }
 
-        /* 1. 꽉 차고 큼직한 4:3 모니터 프레임 */
-        .monitor {
-            width: 90vw;
-            max-width: 1100px;
-            aspect-ratio: 4 / 3;
-            background: #1a1a1a;
-            padding: 25px;
-            border-radius: 40px;
-            box-shadow: inset 0 0 30px rgba(255,255,255,0.05), 0 50px 100px rgba(0,0,0,0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* 2. 화면 전체를 CRT 스크린으로 설정 */
+        .screen {
             position: relative;
-        }
-
-        /* 2. [핵심] CRT 곡면 효과 (이미지 왜곡 없이 테두리만 볼록) */
-        .screen-container {
             width: 100%;
             height: 100%;
             background: #0a0e05; /* 어두운 녹색 터미널 배경 */
-            position: relative;
-            overflow: hidden;
-            
-            /* 항아리 모양으로 화면을 깎음 */
-            border-radius: 50% / 10%; 
-            box-shadow: inset 0 0 150px rgba(0,0,0,1); /* 가쪽을 어둡게 눌러서 볼록해 보이게 함 */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            
+            /* 미세한 곡률 효과 (가장자리를 살짝 깎음) */
+            border-radius: 20px;
+            overflow: hidden;
         }
 
-        /* 3. 터미널 텍스트 스타일 */
+        /* 3. 터미널 텍스트 스타일 (크기 조정) */
         .terminal-text {
-            color: #33ff33; /* 고전적인 터미널 그린 */
-            font-size: 3.5vw;
+            color: #33ff33;
+            font-size: 5rem; /* 화면에 꽉 차게 크기 키움 */
             font-weight: bold;
             text-align: center;
-            text-shadow: 0 0 15px rgba(51, 255, 51, 0.8); /* 글자 번짐 효과 */
+            text-shadow: 0 0 10px rgba(51, 255, 51, 0.8), 0 0 20px rgba(51, 255, 51, 0.3);
             z-index: 10;
+            letter-spacing: 2px;
+            line-height: 1.4;
         }
 
-        /* 4. CRT 감성 오버레이 (미세한 줄무늬와 광택) */
+        /* 4. CRT 스캔라인 애니메이션 효과 */
         .crt-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            /* 미세한 스캔라인 */
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 3px, 3px 100%;
             pointer-events: none;
-            z-index: 5;
+            z-index: 15;
+            /* 가로 스캔라인 생성 */
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), 
+            linear-gradient(
+                90deg, 
+                rgba(255, 0, 0, 0.06), 
+                rgba(0, 255, 0, 0.02), 
+                rgba(0, 0, 255, 0.06)
+            );
+            background-size: 100% 4px, 3px 100%;
         }
 
-        /* 볼록한 유리 반사광 */
-        .glass-reflection {
+        /* 위아래로 움직이는 주사선 효과 추가 */
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 16;
+            background: linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(0, 0, 0, 0) 100%
+            );
+            opacity: 0.1;
+            position: absolute;
+            bottom: 100%;
+            animation: scanline 6s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { bottom: 100%; }
+            100% { bottom: -100px; }
+        }
+
+        /* 5. 화면 가장자리 비네팅(어둡게) & 유리 반사 */
+        .screen::after {
+            content: " ";
+            display: block;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%);
-            z-index: 6;
+            bottom: 0;
+            right: 0;
+            background: radial-gradient(
+                circle at center, 
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.5) 100%
+            ),
+            radial-gradient(
+                circle at 50% 50%,
+                rgba(255, 255, 255, 0.05) 0%,
+                transparent 60%
+            );
+            z-index: 20;
             pointer-events: none;
         }
 
+        /* 깜빡이는 애니메이션 (지직거리는 느낌) */
+        @keyframes flicker {
+            0% { opacity: 0.98; }
+            5% { opacity: 0.95; }
+            10% { opacity: 0.9; }
+            15% { opacity: 0.85; }
+            20% { opacity: 0.95; }
+            80% { opacity: 0.9; }
+            100% { opacity: 1; }
+        }
+
+        .flicker-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(18, 16, 16, 0.02);
+            z-index: 25;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
     </style>
 </head>
 <body>
 
-    <div class="monitor">
-        <div class="screen-container">
-            <!-- 화면 중앙 텍스트 -->
-            <div class="terminal-text">
-                어서오십시오<br>
-                게임하십시오
-            </div>
-            
-            <!-- CRT 효과 레이어 -->
-            <div class="crt-overlay"></div>
-            <div class="glass-reflection"></div>
+    <div class="screen">
+        <!-- 움직이는 주사선 -->
+        <div class="scanline"></div>
+        
+        <!-- 텍스트 -->
+        <div class="terminal-text">
+            어서오십시오<br>
+            게임하십시오
         </div>
+        
+        <!-- CRT 효과 레이어들 -->
+        <div class="crt-overlay"></div>
+        <div class="flicker-layer"></div>
     </div>
 
 </body>
