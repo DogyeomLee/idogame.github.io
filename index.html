@@ -2,182 +2,187 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>90s Arcade Retro Screen</title>
+    <title>K-Retro Game CRT Fullscreen</title>
     <style>
-        /* 레트로 게임 감성 폰트 */
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@900&display=swap');
 
-        body {
-            background: #111;
+        :root {
+            --dancheong-red: #c0392b;
+            --dancheong-green: #27ae60;
+            --dancheong-blue: #2980b9;
+            --dancheong-gold: #f1c40f;
+            --crt-bg: #110a1a;
+        }
+
+        body, html {
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* 4:3 비율의 CRT 모니터 본체 효과 */
-        .crt-container {
-            position: relative;
-            width: 85vw;
-            max-width: 900px;
-            aspect-ratio: 4 / 3;
-            background: #000;
-            /* 테두리를 둥글게 깎아 브라운관 실물 느낌 유도 */
-            border-radius: 40px;
-            box-shadow: 0 0 0 20px #1a1a1a, 0 50px 100px rgba(0,0,0,0.8);
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* 1. 화면 굴곡 효과 (Bulge Effect) */
-        .screen {
+            padding: 0;
             width: 100%;
             height: 100%;
-            background: #2a1a4a; /* 터미널 녹색 탈피: 짙은 보랏빛 베이스 */
-            background-image: linear-gradient(#2a1a4a 0%, #100a20 100%);
-            position: relative;
-            overflow: hidden;
+            background-color: #000;
             display: flex;
-            flex-direction: column;
-            padding: 40px;
-            box-sizing: border-box;
-            font-family: 'Press Start 2P', cursive;
-            /* 렌즈 왜곡: 화면을 살짝 늘려줌 */
-            transform: scale(1.05);
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
 
-        /* 2. CRT 물리 필터 (스캔라인 + 픽셀 격자) */
+        /* 1. 화면 크기를 브라우저 가득 채우기 (4:3 비율 유지하며 최대화) */
+        .monitor-frame {
+            position: relative;
+            width: 95vw;
+            height: calc(95vw * 0.75);
+            max-height: 95vh;
+            max-width: calc(95vh * 1.33);
+            background: var(--crt-bg);
+            border: 15px solid #222;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 0 100px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        /* 2. CRT 볼록 렌즈 효과 및 단청 테두리 */
+        .screen {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            border: 20px solid transparent;
+            /* 한국적 단청 문양 테두리 (CSS 패턴) */
+            border-image: repeating-linear-gradient(45deg, 
+                var(--dancheong-red), var(--dancheong-red) 10px, 
+                var(--dancheong-green) 10px, var(--dancheong-green) 20px,
+                var(--dancheong-blue) 20px, var(--dancheong-blue) 30px
+            ) 20;
+            padding: 30px;
+        }
+
+        /* 3. CRT 물리 필터 (스캔라인 + 노이즈) */
         .crt-filter {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: 
-                /* 가로 주사선 */
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%),
-                /* 세로 RGB 픽셀 느낌 */
-                linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.05));
-            background-size: 100% 3px, 3px 100%;
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%),
+                radial-gradient(circle, transparent 40%, rgba(0,0,0,0.4) 100%);
+            background-size: 100% 4px, cover;
             z-index: 10;
             pointer-events: none;
+            opacity: 0.8;
         }
 
-        /* 3. 유리관 반사광 (Vignette & Glare) */
-        .screen::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            /* 화면 외곽 어둡게 하여 볼록한 느낌 강조 */
-            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.5) 100%);
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        .glass-highlight {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 40%);
-            z-index: 11;
-            pointer-events: none;
-        }
-
-        /* 90년대 게임 스타일 UI */
-        .ui-header {
+        /* 4. 한국적 UI 스타일 */
+        .k-header {
             display: flex;
             justify-content: space-between;
-            color: #ffde00; /* 황금색 포인트 */
-            text-shadow: 3px 3px #c00;
-            margin-bottom: 40px;
-        }
-
-        .char-profile {
-            display: flex;
-            gap: 20px;
             align-items: center;
+            color: var(--dancheong-gold);
+            font-family: 'Press Start 2P', cursive;
+            border-bottom: 4px solid var(--dancheong-gold);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px #000;
+        }
+
+        .main-title {
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 900;
+            font-size: 4rem;
             color: #fff;
-        }
-
-        .avatar-box {
-            width: 80px;
-            height: 80px;
-            border: 4px solid #fff;
-            background: #444; /* 여기에 캐릭터 도트 이미지 가능 */
-            box-shadow: 5px 5px 0 #c00;
-        }
-
-        .project-list {
-            margin-top: 30px;
-        }
-
-        .project-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 2px solid #00f6ff; /* 사이버틱한 하늘색 */
-            box-shadow: 5px 5px 0 rgba(0, 246, 255, 0.3);
-            color: #fff;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.1s;
-        }
-
-        .project-item:hover {
-            background: #fff;
-            color: #000;
-            transform: translate(-2px, -2px);
-            box-shadow: 7px 7px 0 #ff00ff; /* 핑크색 강조 */
-        }
-
-        /* 하단 상태바 */
-        .status-bar {
-            margin-top: auto;
-            background: #c00;
-            color: #fff;
-            padding: 10px;
-            font-size: 10px;
             text-align: center;
-            animation: blink 1s infinite;
+            margin: 20px 0;
+            text-shadow: 5px 5px 0px var(--dancheong-red), 10px 10px 0px var(--dancheong-blue);
+            letter-spacing: -2px;
         }
 
-        @keyframes blink {
-            50% { opacity: 0.5; }
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .menu-item {
+            width: 80%;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 3px solid var(--dancheong-green);
+            color: #fff;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); /* 한국적 기와 느낌의 변형 */
+        }
+
+        .menu-item:hover {
+            background: var(--dancheong-gold);
+            color: #000;
+            transform: scale(1.05);
+        }
+
+        /* 하단 장식 문양 */
+        .taegeuk-deco {
+            margin-top: auto;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .circle {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(to bottom, #c0392b 50%, #2980b9 50%);
+            animation: rotate 2s infinite linear;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .scanline-move {
+            position: absolute;
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            top: -10px;
+            animation: scanline 8s linear infinite;
+            z-index: 11;
+        }
+
+        @keyframes scanline {
+            0% { top: -10%; }
+            100% { top: 110%; }
         }
     </style>
 </head>
 <body>
 
-<div class="crt-container">
+<div class="monitor-frame">
     <div class="crt-filter"></div>
-    <div class="glass-highlight"></div>
+    <div class="scanline-move"></div>
     
     <div class="screen">
-        <!-- 상단 헤더: 스코어 대신 포트폴리오 타이틀 -->
-        <div class="ui-header">
-            <span>ST: 1P</span>
-            <span>PORTFOLIO 2026</span>
-            <span>HI: 99999</span>
+        <div class="k-header">
+            <span>서기 2026년</span>
+            <span>개발자 홍길동</span>
         </div>
 
-        <!-- 캐릭터/개발자 정보 -->
-        <div class="char-profile">
-            <div class="avatar-box"></div>
-            <div>
-                <div style="color: #00f6ff; font-size: 18px; margin-bottom: 10px;">GILDONG HONG</div>
-                <div style="font-size: 10px;">LV.99 GAME ARCHITECT</div>
-            </div>
+        <div class="main-title">개발 포트폴리오</div>
+
+        <div class="menu-container">
+            <div class="menu-item">제 1 장: 언리얼 엔진의 기록</div>
+            <div class="menu-item">제 2 장: 웹 기술 연대기</div>
+            <div class="menu-item">제 3 장: 연락용 서신 (MAIL)</div>
         </div>
 
-        <!-- 프로젝트 리스트: 게임 스테이지 선택 느낌 -->
-        <div class="project-list">
-            <div class="project-item">STAGE 01: ACTION_RPG_ENGINE</div>
-            <div class="project-item">STAGE 02: MULTIPLAYER_FRAMEWORK</div>
-            <div class="project-item">STAGE 03: RETRO_SHADER_PACK</div>
-        </div>
-
-        <div class="status-bar">
-            PRESS START TO VIEW PROJECT_DETAILS
+        <div class="taegeuk-deco">
+            <div class="circle"></div>
+            <div style="color: var(--dancheong-gold); font-family: 'Press Start 2P'; font-size: 10px; line-height: 40px;">INSERT COIN</div>
+            <div class="circle"></div>
         </div>
     </div>
 </div>
