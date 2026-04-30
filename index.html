@@ -1,160 +1,116 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>Extreme Realism CRT Terminal</title>
-    <style>
-        /* 레트로 픽셀 폰트 */
-        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+<meta charset="UTF-8">
+<title>CRT Effect</title>
 
-        :root {
-            --glow-color: #33ff33;
-            --bg-color: #050805;
-        }
+<style>
+body {
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
 
-        body {
-            background-color: #1a1a1a; /* 어두운 작업실 느낌의 배경 */
-            background-image: 
-                radial-gradient(circle at center, #222 0%, #111 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
+/* CRT 외형 */
+.crt {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    background: black;
+    border-radius: 30px;
+    overflow: hidden;
 
-        /* 4:3 비율의 CRT 모니터 본체 */
-        .crt-monitor {
-            position: relative;
-            width: 85vw;
-            max-width: 1000px;
-            aspect-ratio: 4 / 3;
-            background: #2a2a2a;
-            padding: 20px;
-            border-radius: 50px;
-            box-shadow: 
-                0 50px 100px rgba(0,0,0,0.8),
-                inset 0 2px 10px rgba(255,255,255,0.1);
-            /* SVG 필터를 화면 전체에 적용하여 실제 볼록 렌즈 효과 구현 */
-            filter: url(#distort); 
-        }
+    /* 렌즈 느낌 */
+    transform: perspective(800px) scale(1.02);
+}
 
-        /* 실제 구동되는 화면 영역 */
-        .screen-main {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-color);
-            border-radius: 40px;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 15px solid #111;
-            box-shadow: inset 0 0 100px rgba(0,0,0,1);
-        }
+/* 내부 화면 */
+.screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    color: #0f0;
+    font-family: monospace;
+    font-size: 20px;
 
-        /* 텍스트 스타일 */
-        .terminal-content {
-            font-family: 'VT323', monospace;
-            color: var(--glow-color);
-            font-size: 7vw;
-            text-align: center;
-            z-index: 5;
-            /* 글자 자체에 미세한 번짐 효과 */
-            filter: blur(0.5px);
-            text-shadow: 
-                0 0 10px rgba(51, 255, 51, 0.8),
-                0 0 20px rgba(51, 255, 51, 0.4);
-            animation: textFlicker 0.05s infinite;
-        }
+    /* 색수차 */
+    text-shadow:
+        -1px 0 red,
+        1px 0 blue;
 
-        /* 1. RGB 서브픽셀 격자 (매우 세밀한 격자) */
-        .pixel-grid {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: 
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%),
-                linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.05), rgba(0, 0, 255, 0.05));
-            background-size: 100% 3px, 4px 100%;
-            z-index: 10;
-            pointer-events: none;
-        }
+    animation: flicker 0.15s infinite;
+}
 
-        /* 2. 화면 전체를 지나가는 주사선(Scanline) */
-        .scanline {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100px;
-            background: linear-gradient(to bottom, transparent, rgba(51, 255, 51, 0.03), transparent);
-            opacity: 0.4;
-            animation: moveScanline 8s linear infinite;
-            z-index: 11;
-        }
+/* 스캔라인 */
+.crt::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
 
-        /* 3. 볼록한 유리의 강력한 반사광 */
-        .glass-reflection {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: 
-                radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 30%);
-            z-index: 15;
-            pointer-events: none;
-        }
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.05) 0px,
+        rgba(0,0,0,0.2) 2px,
+        rgba(0,0,0,0.2) 4px
+    );
 
-        /* 4. 화면 구석 비네팅 (가장자리 어둡게) */
-        .vignette {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
-            z-index: 12;
-            pointer-events: none;
-        }
+    pointer-events: none;
+}
 
-        /* 애니메이션 효과들 */
-        @keyframes moveScanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(1000%); }
-        }
+/* 비네팅 + 곡률 강조 */
+.crt::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
 
-        @keyframes textFlicker {
-            0% { opacity: 0.9931; }
-            100% { opacity: 1; }
-        }
-    </style>
+    background: radial-gradient(
+        circle at center,
+        transparent 60%,
+        rgba(0,0,0,0.6) 100%
+    );
+
+    pointer-events: none;
+}
+
+/* 깜빡임 */
+@keyframes flicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.9; }
+    100% { opacity: 1; }
+}
+
+/* 살짝 흔들림 */
+@keyframes glitch {
+    0% { transform: translate(0); }
+    20% { transform: translate(-1px, 1px); }
+    40% { transform: translate(1px, -1px); }
+    60% { transform: translate(-1px, 0); }
+    80% { transform: translate(1px, 0); }
+    100% { transform: translate(0); }
+}
+
+.screen {
+    animation: flicker 0.15s infinite, glitch 0.3s infinite;
+}
+</style>
+
 </head>
+
 <body>
 
-    <!-- [핵심] 화면을 볼록하게 왜곡시키는 SVG 필터 -->
-    <svg width="0" height="0" style="position:absolute;">
-        <defs>
-            <filter id="distort">
-                <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="1" result="noise" />
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" /> <!-- 기본 구조 -->
-                <!-- 볼록 렌즈 효과를 위한 좌표 변형 매트릭스 -->
-                <feComponentTransfer>
-                   <feFuncA type="linear" slope="1" />
-                </feComponentTransfer>
-            </filter>
-        </defs>
-    </svg>
-
-    <div class="crt-monitor">
-        <div class="screen-main">
-            <!-- 내부 요소들 -->
-            <div class="terminal-content">
-                SYSTEM LOADED<br>
-                INSERT COIN _
-            </div>
-
-            <!-- 효과 오버레이 -->
-            <div class="pixel-grid"></div>
-            <div class="scanline"></div>
-            <div class="vignette"></div>
-            <div class="glass-reflection"></div>
-        </div>
+<div class="crt">
+    <div class="screen">
+        > SYSTEM BOOTING...<br>
+        > LOADING MODULES...<br>
+        > WELCOME USER_<br><br>
+        C:\>
     </div>
+</div>
 
 </body>
 </html>
