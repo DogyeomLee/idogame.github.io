@@ -2,21 +2,16 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Fullscreen CRT</title>
+    <title>CRT Portfolio Main</title>
     <style>
-        /* 1. 바탕화면 자체를 CRT로 만들기 위해 여백 완전 제거 */
+        * { margin: 0; padding: 0; overflow: hidden; }
         body, html { 
-            margin: 0; 
-            padding: 0; 
-            width: 100%; 
-            height: 100%; 
-            overflow: hidden; 
-            background-color: #000; 
+            width: 100%; height: 100%; 
+            background-color: #050505; 
         }
         canvas { 
             display: block; 
-            width: 100vw; 
-            height: 100vh; 
+            width: 100vw; height: 100vh; 
         }
     </style>
 </head>
@@ -27,14 +22,44 @@
 const canvas = document.getElementById("crt");
 const gl = canvas.getContext("webgl");
 
-// 2. 창 크기가 바뀌어도 꽉 차게 유지하는 함수
+// 텍스트를 그리기 위한 보이지 않는 캔버스 (Texture용)
+const textCanvas = document.createElement("canvas");
+const tCtx = textCanvas.getContext("2d");
+
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    // 텍스처 해상도 설정
+    textCanvas.width = 1024;
+    textCanvas.height = 768;
     gl.viewport(0, 0, canvas.width, canvas.height);
+    drawText();
 }
-window.addEventListener('resize', resize);
-resize();
+
+// 포트폴리오 소개 텍스트 그리기
+function drawText() {
+    tCtx.fillStyle = "black";
+    tCtx.fillRect(0, 0, textCanvas.width, textCanvas.height);
+    
+    tCtx.fillStyle = "#00ff44"; // 고전 녹색 컴퓨터 폰트 색상
+    tCtx.font = "bold 40px 'Courier New', monospace";
+    tCtx.shadowBlur = 15;
+    tCtx.shadowColor = "#00ff44";
+
+    tCtx.fillText("> PORTFOLIO v1.0", 50, 100);
+    tCtx.fillText("----------------------------", 50, 150);
+    tCtx.font = "30px 'Courier New', monospace";
+    tCtx.fillText("NAME: [사용자 이름]", 50, 220);
+    tCtx.fillText("ROLE: FULL-STACK DEVELOPER", 50, 270);
+    tCtx.fillText("STATUS: READY TO WORK...", 50, 320);
+    
+    tCtx.fillText("> LOADING SKILLS...", 50, 420);
+    tCtx.fillText("- HTML/CSS/JS (OK)", 80, 470);
+    tCtx.fillText("- WEBGL/SHADER (ACTIVE)", 80, 520);
+    
+    tCtx.font = "20px 'Courier New', monospace";
+    tCtx.fillText("_커서를 움직여 화면을 확인하세요", 50, 650);
+}
 
 const vertex = `
     attribute vec2 position;
@@ -50,61 +75,45 @@ const fragment = `
     varying vec2 vUv;
     uniform float u_time;
     uniform vec2 u_resolution;
+    uniform sampler2D u_texture;
 
-    // 3. 화면 전체를 덮는 구형 굴곡 (fisheye)
     vec2 curve(vec2 uv) {
         uv = uv * 2.0 - 1.0;
-        // 해상도 비율에 맞춰 왜곡 보정
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        
-        // 굴곡 강도 (0.1 ~ 0.4 사이에서 조절)
-        float distort = 0.2;
+        float distort = 0.15;
         uv = uv + uv * dot(uv, uv) * distort;
-        
         uv.x /= aspect;
-        // 화면에 꽉 차게 보이기 위해 0.85 정도로 스케일 조정 (숫자가 작을수록 꽉 참)
-        return uv * 0.9 + 0.5; 
+        return uv * 0.92 + 0.5;
     }
 
     void main() {
         vec2 uv = curve(vUv);
         
-        // 화면 끝부분 부드러운 페이드 (베젤 효과 제거하고 싶으면 이 조건문 삭제)
-        float mask = smoothstep(0.0, 0.01, uv.x) * smoothstep(1.0, 0.99, uv.x) *
-                     smoothstep(0.0, 0.01, uv.y) * smoothstep(1.0, 0.99, uv.y);
-
         if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
             return;
         }
 
-        // 4. 컬러 패턴
-        vec3 color;
-        float x = uv.x;
-        if (x < 1.0/7.0) color = vec3(0.8);
-        else if (x < 2.0/7.0) color = vec3(0.8, 0.8, 0.0);
-        else if (x < 3.0/7.0) color = vec3(0.0, 0.8, 0.8);
-        else if (x < 4.0/7.0) color = vec3(0.0, 0.8, 0.0);
-        else if (x < 5.0/7.0) color = vec3(0.8, 0.0, 0.8);
-        else if (x < 6.0/7.0) color = vec3(0.8, 0.0, 0.0);
-        else color = vec3(0.0, 0.0, 0.8);
+        // 텍스처(텍스트) 색상 가져오기
+        vec3 color = texture2D(u_texture, uv).rgb;
 
-        // 5. 강력한 CRT 효과 (스캔라인 + 노이즈 + RGB)
-        float scanline = sin(uv.y * u_resolution.y * 1.2) * 0.1;
-        float grill = sin(uv.x * u_resolution.x * 1.2) * 0.05;
-        
+        // 1. 강한 스캔라인
+        float scanline = sin(uv.y * u_resolution.y * 1.5 + u_time * 10.0) * 0.1;
         color -= scanline;
-        color += grill;
-        
-        // 지지직거리는 미세 노이즈
-        float noise = fract(sin(dot(uv * u_time, vec2(12.9898,78.233))) * 43758.5453);
-        color += noise * 0.03;
 
-        // 비네팅 (화면 중앙 강조)
-        float vignette = pow(uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y) * 15.0, 0.25);
-        
-        gl_FragColor = vec4(color * vignette * mask, 1.0);
+        // 2. 미세한 노이즈 (지지직거림)
+        float noise = fract(sin(dot(uv * u_time, vec2(12.9898, 78.233))) * 43758.5453);
+        color += noise * 0.05;
+
+        // 3. 비네팅 (구석 어둡게)
+        float vignette = pow(uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y) * 15.0, 0.3);
+        color *= vignette;
+
+        // 4. 화면 깜빡임
+        color *= 0.97 + 0.03 * sin(u_time * 110.0);
+
+        gl_FragColor = vec4(color, 1.0);
     }
 `;
 
@@ -123,21 +132,37 @@ gl.useProgram(program);
 const buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
-
 const pos = gl.getAttribLocation(program, "position");
 gl.enableVertexAttribArray(pos);
 gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+// 텍스처 설정
+const texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texture);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
 const timeLoc = gl.getUniformLocation(program, "u_time");
 const resLoc = gl.getUniformLocation(program, "u_resolution");
 
 function render(t) {
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    
+    // 텍스처 업데이트 (애니메이션 효과를 위해 매 프레임 업데이트 가능)
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textCanvas);
+
     gl.uniform1f(timeLoc, t * 0.001);
     gl.uniform2f(resLoc, canvas.width, canvas.height);
     
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(render);
 }
+
+window.addEventListener('resize', resize);
+resize();
 requestAnimationFrame(render);
 </script>
 </body>
