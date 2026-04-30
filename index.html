@@ -2,31 +2,27 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Pure Curved CRT Screen</title>
+    <title>Retro Game Stat Screen</title>
     <style>
         * { margin: 0; padding: 0; overflow: hidden; }
         body, html { 
             width: 100%; height: 100%; 
-            background-color: #000; 
+            background-color: #050505; 
             display: flex; justify-content: center; align-items: center;
         }
-        /* 외부 테두리 없이 화면만 꽉 차게 조절 */
         #container {
-            position: relative;
             width: 100vw;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #000;
         }
         canvas { 
-            /* 화면에 꽉 차되 4:3 비율 유지 */
-            height: 100%;
-            width: auto;
+            /* 화면에 꽉 차게 조절 (비율 유지) */
+            max-width: 95%;
+            max-height: 95%;
             aspect-ratio: 4 / 3;
             cursor: pointer;
-            filter: brightness(1.2) contrast(1.1); /* 유리 질감 강조 */
         }
     </style>
 </head>
@@ -46,39 +42,102 @@ textCanvas.height = 768;
 
 let page = 0;
 const pages = [
-    { title: "CHARACTER PROFILE", name: "HONG GIL DONG", job: "WARRIOR", stats: [["STRENGTH", 95], ["AGILITY", 88]] },
-    { title: "SKILL TREE", name: "HONG GIL DONG", job: "WARRIOR", stats: [["SWORD", 99], ["MAGIC", 40]] }
+    { 
+        title: "CHARACTER STATUS", 
+        name: "GEMINI", 
+        lv: "99",
+        hp: [850, 1000],
+        mp: [420, 500],
+        stats: [["STR", 85], ["INT", 99], ["AGI", 72], ["LUK", 60]] 
+    },
+    { 
+        title: "EQUIPMENT SKILLS", 
+        name: "GEMINI", 
+        lv: "99",
+        hp: [850, 1000],
+        mp: [420, 500],
+        stats: [["REACT", 90], ["WEBGL", 85], ["CANVAS", 95], ["UI/UX", 80]] 
+    }
 ];
 
 function drawUI() {
-    tCtx.fillStyle = "#000030"; 
+    const d = pages[page];
+    
+    // 1. 배경: 고전 게임 특유의 짙은 블루 그라데이션 느낌
+    const grad = tCtx.createLinearGradient(0, 0, 0, 768);
+    grad.addColorStop(0, "#000044");
+    grad.addColorStop(1, "#000022");
+    tCtx.fillStyle = grad;
     tCtx.fillRect(0, 0, 1024, 768);
     
-    // 고전 금색 테두리 (직선으로 그려도 셰이더가 곡선으로 만듭니다)
-    tCtx.strokeStyle = "#aa8800"; tCtx.lineWidth = 20;
-    tCtx.strokeRect(40, 40, 944, 688);
-    
-    const d = pages[page];
-    tCtx.fillStyle = "#aa8800"; tCtx.fillRect(40, 40, 944, 80);
-    tCtx.fillStyle = "#fff"; tCtx.font = "bold 45px monospace"; tCtx.textAlign = "center";
+    // 2. 장식용 격자 무늬 (Grid)
+    tCtx.strokeStyle = "rgba(0, 255, 255, 0.05)";
+    tCtx.lineWidth = 1;
+    for(let i=0; i<1024; i+=40) { tCtx.beginPath(); tCtx.moveTo(i,0); tCtx.lineTo(i,768); tCtx.stroke(); }
+    for(let i=0; i<768; i+=40) { tCtx.beginPath(); tCtx.moveTo(0,i); tCtx.lineTo(1024,i); tCtx.stroke(); }
+
+    // 3. 고전 게임 테두리 (Double Frame)
+    tCtx.strokeStyle = "#860"; tCtx.lineWidth = 15;
+    tCtx.strokeRect(30, 30, 964, 708);
+    tCtx.strokeStyle = "#fb0"; tCtx.lineWidth = 3;
+    tCtx.strokeRect(45, 45, 934, 678);
+
+    // 4. 타이틀 영역
+    tCtx.fillStyle = "rgba(136, 102, 0, 0.8)";
+    tCtx.fillRect(45, 45, 934, 70);
+    tCtx.fillStyle = "#fff";
+    tCtx.font = "bold 40px monospace";
+    tCtx.textAlign = "center";
     tCtx.fillText(d.title, 512, 95);
 
+    // 5. 캐릭터 기본 정보
     tCtx.textAlign = "left";
     tCtx.font = "bold 35px monospace";
-    tCtx.fillText(`NAME : ${d.name}`, 120, 250);
-    tCtx.fillText(`JOB  : ${d.job}`, 120, 330);
+    tCtx.fillStyle = "#0ff";
+    tCtx.fillText(`NAME: ${d.name}`, 100, 200);
+    tCtx.fillStyle = "#ff0";
+    tCtx.fillText(`LV  : ${d.lv}`, 100, 250);
 
-    d.stats.forEach((s, i) => {
-        tCtx.fillText(s[0], 120, 500 + i*80);
-        tCtx.fillStyle = "#111"; tCtx.fillRect(400, 470 + i*80, 400, 40);
-        tCtx.fillStyle = "#0ff"; tCtx.fillRect(400, 470 + i*80, s[1]*4, 40);
+    // HP/MP 바
+    const drawBar = (label, curr, max, y, color) => {
         tCtx.fillStyle = "#fff";
+        tCtx.font = "bold 25px monospace";
+        tCtx.fillText(label, 100, y);
+        tCtx.fillStyle = "#111";
+        tCtx.fillRect(200, y - 20, 400, 25);
+        tCtx.fillStyle = color;
+        tCtx.fillRect(200, y - 20, (curr/max) * 400, 25);
+        tCtx.fillStyle = "#fff";
+        tCtx.fillText(`${curr}/${max}`, 620, y);
+    }
+    drawBar("HP", d.hp[0], d.hp[1], 320, "#f00");
+    drawBar("MP", d.mp[0], d.mp[1], 370, "#0af");
+
+    // 6. 상세 스탯 창
+    tCtx.strokeStyle = "#fb0";
+    tCtx.strokeRect(100, 430, 824, 250);
+    d.stats.forEach((s, i) => {
+        let x = i % 2 === 0 ? 150 : 550;
+        let y = 490 + (Math.floor(i/2) * 80);
+        tCtx.fillStyle = "#fff";
+        tCtx.font = "bold 30px monospace";
+        tCtx.fillText(`${s[0]}:`, x, y);
+        tCtx.fillStyle = "#0f0";
+        tCtx.fillText(s[1].toString(), x + 150, y);
+        
+        // 작은 게이지
+        tCtx.fillStyle = "#222";
+        tCtx.fillRect(x, y + 10, 300, 10);
+        tCtx.fillStyle = "#0f0";
+        tCtx.fillRect(x, y + 10, s[1] * 3, 10);
     });
-    
-    tCtx.textAlign = "center";
-    if (Math.floor(Date.now() / 500) % 2 === 0) {
-        tCtx.fillStyle = "#ff0";
-        tCtx.fillText(">> CLICK SCREEN <<", 512, 700);
+
+    // 하단 안내
+    if (Math.floor(Date.now() / 600) % 2 === 0) {
+        tCtx.fillStyle = "#fb0";
+        tCtx.font = "20px monospace";
+        tCtx.textAlign = "center";
+        tCtx.fillText(">> CLICK TO NEXT DATA <<", 512, 715);
     }
 }
 
@@ -92,24 +151,25 @@ const fs = `
     uniform sampler2D t;
     uniform float time;
 
-    // 강력한 볼록렌즈(배럴) 왜곡 함수
-    vec2 barrelDistort(vec2 uv) {
+    // 개선된 렌즈 왜곡 (가운데 확대 현상 억제)
+    vec2 crtDistort(vec2 uv) {
         uv = uv * 2.0 - 1.0;
-        // 곡률 계수: 숫자가 높을수록 더 볼록해짐
-        float distortion = 0.25; 
         float r2 = uv.x*uv.x + uv.y*uv.y;
-        uv *= (1.0 + distortion * r2 + distortion * r2 * r2);
         
-        // 줌 조절 (화면 밖으로 나가는 것 방지)
-        return uv * 0.7 + 0.5; 
+        // 왜곡 강도는 유지하되, 전체적인 스케일을 조정해 확대 방지
+        float distortion = 0.18; 
+        uv *= (1.0 + distortion * r2);
+        
+        // 수치를 미세하게 줄여 전체 화면이 보이게 함
+        return uv * 0.9 + 0.5; 
     }
 
     void main() {
-        vec2 uv = barrelDistort(v);
+        vec2 uv = crtDistort(v);
 
-        // 모서리 마스킹 (곡선 형태의 화면 끝 처리)
-        float vignette = smoothstep(0.0, 0.05, uv.x) * smoothstep(1.0, 0.95, uv.x) *
-                         smoothstep(0.0, 0.05, uv.y) * smoothstep(1.0, 0.95, uv.y);
+        // 부드러운 모서리 마스킹
+        float mask = smoothstep(0.0, 0.02, uv.x) * smoothstep(1.0, 0.98, uv.x) *
+                     smoothstep(0.0, 0.02, uv.y) * smoothstep(1.0, 0.98, uv.y);
 
         if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -119,21 +179,26 @@ const fs = `
         vec2 fUv = vec2(uv.x, 1.0 - uv.y);
         vec3 color = texture2D(t, fUv).rgb;
 
-        // 1. 주사선 효과 (곡선에 맞춰 정렬됨)
-        float scanline = sin(uv.y * 700.0) * 0.1;
+        // 1. CRT 주사선 (Scanlines) - 더 촘촘하고 명확하게
+        float scanline = sin(uv.y * 800.0) * 0.12;
         color -= scanline;
 
-        // 2. 화면 중앙 밝기 강조 (유리 광택 느낌)
-        float glare = 1.0 - length(uv - 0.5) * 1.1;
-        color += glare * 0.15;
+        // 2. 미세한 지지직거림 (Grain)
+        float noise = (fract(sin(dot(uv, vec2(12.9898,78.233)*time)) * 43758.5453));
+        color += noise * 0.03;
 
-        // 3. 미세한 색수차 (RGB 밀림)
-        float r = texture2D(t, fUv + vec2(0.001, 0.0)).r;
-        float b = texture2D(t, fUv - vec2(0.001, 0.0)).b;
+        // 3. 브라운관 유리 광택 (Lens Flare)
+        float dist = length(uv - 0.5);
+        float glare = Math.max(0.0, 1.0 - dist * 1.2);
+        color += glare * 0.1;
+
+        // 4. 색수차 (RGB Fringe)
+        float r = texture2D(t, fUv + vec2(0.0015, 0.0)).r;
+        float b = texture2D(t, fUv - vec2(0.0015, 0.0)).b;
         color.r = r;
         color.b = b;
 
-        gl_FragColor = vec4(color * vignette, 1.0);
+        gl_FragColor = vec4(color * mask, 1.0);
     }
 `;
 
@@ -161,6 +226,7 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 function loop(t) {
     drawUI();
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textCanvas);
+    gl.uniform1f(gl.getUniformLocation(prog, "time"), t * 0.001);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(loop);
 }
