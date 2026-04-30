@@ -2,154 +2,134 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>CRT Terminal Fullscreen</title>
+    <title>Realistic CRT Amber Terminal</title>
     <style>
-        /* 1. 배경을 검정으로 고정하고 여백 제거 */
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
         body {
-            background-color: #000;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            width: 100vw;
+            background-color: #121212; /* 배경을 검정 대신 깊은 그레이로 */
+            background-image: radial-gradient(#222 0.5px, transparent 0.5px);
+            background-size: 24px 24px; /* 배경에 미세한 패턴 추가 */
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            margin: 0;
             overflow: hidden;
         }
 
-        /* 2. 화면 전체를 CRT 스크린으로 설정 */
+        /* 4:3 비율의 곡면 컨테이너 */
+        .crt-container {
+            position: relative;
+            width: 80vw;
+            max-width: 900px;
+            aspect-ratio: 4 / 3;
+            /* 렌즈 왜곡 효과: 화면을 앞으로 밀어내고 살짝 구부림 */
+            transform: perspective(1000px) rotateX(2deg) scale(1.05);
+            filter: contrast(1.2) brightness(1.1);
+        }
+
+        /* 실제 렌즈처럼 보이기 위한 구형 왜곡 마스크 */
         .screen {
             position: relative;
             width: 100%;
             height: 100%;
-            background: #0a0e05; /* 어두운 녹색 터미널 배경 */
+            background: #1a1400; /* 호박색 베이스의 어두운 배경 */
+            border-radius: 50% / 8%; /* 상하좌우 곡률 */
+            box-shadow: 
+                0 0 50px rgba(0,0,0,1),
+                inset 0 0 100px rgba(0,0,0,0.8),
+                inset 0 0 20px rgba(255, 176, 0, 0.1);
+            overflow: hidden;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            
-            /* 미세한 곡률 효과 (가장자리를 살짝 깎음) */
-            border-radius: 20px;
-            overflow: hidden;
+            border: 10px solid #222;
         }
 
-        /* 3. 터미널 텍스트 스타일 (크기 조정) */
+        /* 레트로 호박색 텍스트 */
         .terminal-text {
-            color: #33ff33;
-            font-size: 5rem; /* 화면에 꽉 차게 크기 키움 */
-            font-weight: bold;
+            font-family: 'VT323', monospace; /* 레트로 픽셀 느낌 폰트 */
+            color: #ffb000; /* 정통 Amber 색상 */
+            font-size: 6vw;
             text-align: center;
-            text-shadow: 0 0 10px rgba(51, 255, 51, 0.8), 0 0 20px rgba(51, 255, 51, 0.3);
-            z-index: 10;
-            letter-spacing: 2px;
-            line-height: 1.4;
+            line-height: 1.2;
+            text-transform: uppercase;
+            /* 글자 번짐(Glow) 효과 */
+            text-shadow: 
+                0 0 2px rgba(255, 176, 0, 1),
+                0 0 15px rgba(255, 176, 0, 0.6),
+                0 0 30px rgba(255, 176, 0, 0.3);
+            z-index: 5;
+            animation: textShadow 1.5s infinite;
         }
 
-        /* 4. CRT 스캔라인 애니메이션 효과 */
+        /* 텍스트 미세 떨림 */
+        @keyframes textShadow {
+            0% { text-shadow: 0 0 4px #ffb000; }
+            50% { text-shadow: 0 0 20px #ffb000, 2px 2px 2px rgba(255,0,0,0.2); }
+            100% { text-shadow: 0 0 4px #ffb000; }
+        }
+
+        /* 스캔라인 및 노이즈 오버레이 */
         .crt-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 15;
-            /* 가로 스캔라인 생성 */
+            top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(
                 rgba(18, 16, 16, 0) 50%, 
-                rgba(0, 0, 0, 0.25) 50%
+                rgba(0, 0, 0, 0.2) 50%
             ), 
-            linear-gradient(
-                90deg, 
-                rgba(255, 0, 0, 0.06), 
-                rgba(0, 255, 0, 0.02), 
-                rgba(0, 0, 255, 0.06)
-            );
-            background-size: 100% 4px, 3px 100%;
-        }
-
-        /* 위아래로 움직이는 주사선 효과 추가 */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 16;
-            background: linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0) 0%,
-                rgba(255, 255, 255, 0.05) 50%,
-                rgba(0, 0, 0, 0) 100%
-            );
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 6s linear infinite;
-        }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100px; }
-        }
-
-        /* 5. 화면 가장자리 비네팅(어둡게) & 유리 반사 */
-        .screen::after {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: radial-gradient(
-                circle at center, 
-                rgba(18, 16, 16, 0) 50%, 
-                rgba(0, 0, 0, 0.5) 100%
-            ),
-            radial-gradient(
-                circle at 50% 50%,
-                rgba(255, 255, 255, 0.05) 0%,
-                transparent 60%
-            );
-            z-index: 20;
+            linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+            background-size: 100% 3px, 3px 100%;
             pointer-events: none;
+            z-index: 10;
         }
 
-        /* 깜빡이는 애니메이션 (지직거리는 느낌) */
-        @keyframes flicker {
-            0% { opacity: 0.98; }
-            5% { opacity: 0.95; }
-            10% { opacity: 0.9; }
-            15% { opacity: 0.85; }
-            20% { opacity: 0.95; }
-            80% { opacity: 0.9; }
-            100% { opacity: 1; }
-        }
-
-        .flicker-layer {
+        /* 볼록한 유리 광택 */
+        .glass-glare {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(18, 16, 16, 0.02);
-            z-index: 25;
+            background: radial-gradient(
+                circle at 20% 20%, 
+                rgba(255, 255, 255, 0.08) 0%, 
+                transparent 40%
+            );
             pointer-events: none;
-            animation: flicker 0.15s infinite;
+            z-index: 12;
+            border-radius: 50% / 8%;
+        }
+
+        /* 화면 깜빡임 애니메이션 */
+        .flicker {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 176, 0, 0.02);
+            opacity: 0;
+            z-index: 15;
+            pointer-events: none;
+            animation: flicker 0.1s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.1; }
+            100% { opacity: 0.02; }
         }
     </style>
 </head>
 <body>
 
-    <div class="screen">
-        <!-- 움직이는 주사선 -->
-        <div class="scanline"></div>
-        
-        <!-- 텍스트 -->
-        <div class="terminal-text">
-            어서오십시오<br>
-            게임하십시오
+    <div class="crt-container">
+        <div class="screen">
+            <div class="terminal-text">
+                SYSTEM READY<br>
+                INSERT COIN_
+            </div>
+            
+            <!-- CRT 강화 효과 레이어들 -->
+            <div class="crt-overlay"></div>
+            <div class="glass-glare"></div>
+            <div class="flicker"></div>
         </div>
-        
-        <!-- CRT 효과 레이어들 -->
-        <div class="crt-overlay"></div>
-        <div class="flicker-layer"></div>
     </div>
 
 </body>
