@@ -2,138 +2,165 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>실사 같은 레트로 와일드라이프 TV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Dev Portfolio - Retro CRT</title>
     <style>
+        /* 기본 배경 설정 */
         body {
-            background-color: #0a0a0a; /* 더 어두운 배경 */
+            background-color: #1a1a1a;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
         }
 
-        /* 1. TV 외관 (실제 이미지 소스를 프레임으로 활용) */
+        /* 1. TV 외부 프레임 (베이지색 본체) */
         .tv-frame {
             position: relative;
-            /* 원본 이미지 해상도 (3150x2362) 기준 */
-            width: 3150px; 
-            height: 2362px;
-            
-            /* 실제 TV의 질감을 가진 이미지를 배경으로 사용 */
-            /* 주의: 실제 이 코드를 사용하려면 'image_1.png' 파일을 HTML과 같은 경로에 두거나, 실제 이미지 URL로 교체해야 합니다. */
-            background: url('image_1.png') no-repeat center;
-            background-size: contain;
-            
+            width: 800px;
+            height: 600px;
+            background: #dcd0c0;
+            border-radius: 80px 80px 100px 100px;
+            box-shadow: 
+                inset -10px -10px 20px rgba(0,0,0,0.2),
+                inset 10px 10px 20px rgba(255,255,255,0.5),
+                30px 30px 60px rgba(0,0,0,0.5);
             display: flex;
             justify-content: center;
             align-items: center;
-            
-            /* 프레임을 전체적으로 약간 줄여서 화면에 맞춥니다. */
-            transform: scale(0.35); /* 브라우저 화면에 맞게 크기 조절 (필요에 따라 조정) */
-            transform-origin: center center;
+            padding: 20px;
         }
 
-        /* 2. 화면 영역 (TV 프레임 안쪽 구멍에 딱 맞춤 - 이미지 해상도 기준) */
-        .screen-area {
-            position: absolute;
-            
-            /* 원본 이미지 3150x2362에서 검은색 화면 영역의 좌표와 크기를 정확히 측정 */
-            width: 2010px;  /* 실제 화면 가로 크기 */
-            height: 1390px; /* 실제 화면 세로 크기 */
-            top: 410px;     /* 상단 프레임 두께 */
-            left: 690px;    /* 좌측 프레임 두께 */
-            
+        /* 2. 오렌지색 전면 배젤 */
+        .tv-bezel {
+            position: relative;
+            width: 92%;
+            height: 88%;
+            background: #e63900;
+            border-radius: 60px 60px 90px 90px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            padding-left: 60px; /* 스피커 공간 */
+        }
+
+        /* 3. CRT 화면 (렌즈 왜곡 효과의 핵심) */
+        .screen-container {
+            position: relative;
+            width: 85%;
+            height: 85%;
             background: #000;
-            
-            /* 실제 CRT 화면의 둥근 모서리 */
-            border-radius: 120px / 90px;
+            border-radius: 50% / 10%; /* 상하 좌우 볼록한 효과 */
             overflow: hidden;
-            
-            /* 실제 화면처럼 보이도록 안쪽으로 그림자 효과 */
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+            border: 15px solid #1a1a1a;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
 
-        /* 3. 진짜 다큐멘터리 같은 영상 소스 및 효과 */
-        .video-content {
+        /* 4. 화면 내부 콘텐츠 및 굴곡 효과 */
+        .screen-content {
             width: 100%;
             height: 100%;
-            /* 실제 코딩할 때는 HTML5 <video> 태그를 사용하는 것이 좋습니다. */
-            background: url('https://images.unsplash.com/photo-1549366021-9f761d450615?q=80&w=1000') no-repeat center;
-            background-size: cover;
-            
-            /* 옛날 영상 색감 필터 */
-            filter: contrast(1.1) saturate(1.2) sepia(0.2); 
-            
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end; /* 자막을 아래로 */
-            align-items: center;
-            padding-bottom: 120px; /* 자막 하단 여백 */
+            background: #0d1a0d;
+            color: #00ff41;
+            padding: 40px;
             box-sizing: border-box;
+            position: relative;
+            /* 화면이 튀어나와 보이는 렌즈 효과 */
+            background: radial-gradient(circle, #1a331a 0%, #050a05 100%);
+            animation: flicker 0.15s infinite;
         }
 
-        /* 4. [핵심] 브라운관 질감 필터 (지지직거리는 노이즈 및 주사선 효과) */
+        /* 5. CRT 스캔라인 및 노이즈Overlay */
         .crt-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: 
-                url('https://upload.wikimedia.org/wikipedia/commons/7/76/1k_filmgrain.gif') repeat, /* 필름 노이즈 */
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%); /* 주사선 효과 */
-            background-size: auto, 100% 4px;
-            opacity: 0.2; /* 노이즈 세기 조절 */
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.15) 50%
+            ), linear-gradient(
+                90deg, 
+                rgba(255, 0, 0, 0.05), 
+                rgba(0, 255, 0, 0.02), 
+                rgba(0, 0, 255, 0.05)
+            );
+            background-size: 100% 4px, 3px 100%;
             pointer-events: none;
-            z-index: 5;
-        }
-
-        /* 5. 90년대 자막 (방송국 폰트 스타일) */
-        .subtitles {
-            color: #fff;
-            font-family: 'Gulim', 'Dotum', sans-serif; /* 굴림체 계열 */
-            font-size: 80px; /* 큰 프레임 해상도에 맞춰 크기 조정 */
-            font-weight: bold;
-            text-align: center;
-            line-height: 1.5;
-            letter-spacing: -2px; /* 자막 글자 간격 좁힘 */
-            
-            /* 90년대 방송국 특유의 진한 검정 외곽선 (텍스트 섀도우) */
-            text-shadow: 
-                4px 4px 0 #000, -4px -4px 0 #000, 
-                4px -4px 0 #000, -4px 4px 0 #000,
-                0 0 15px rgba(0,0,0,1);
             z-index: 10;
         }
 
-        /* 방송국 로고 */
-        .logo {
+        /* 텍스트 스타일링 */
+        h1 { font-size: 2.5rem; text-shadow: 0 0 10px #00ff41; }
+        .cursor { display: inline-block; width: 12px; height: 24px; background: #00ff41; animation: blink 0.8s infinite; }
+
+        /* 하단 장식 요소 */
+        .lg-logo {
             position: absolute;
-            top: 90px;
-            right: 120px;
-            color: rgba(255,255,255,0.4);
-            font-family: serif;
-            font-size: 60px;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
             font-weight: bold;
-            z-index: 15;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+
+        .speaker {
+            position: absolute;
+            left: 15px;
+            width: 35px;
+            height: 150px;
+            background-image: radial-gradient(#333 1px, transparent 1px);
+            background-size: 5px 5px;
+            opacity: 0.5;
+        }
+
+        /* 애니메이션 */
+        @keyframes flicker {
+            0% { opacity: 0.99; }
+            100% { opacity: 1; }
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* 반응형 스케일 조절 */
+        .tv-scaler {
+            transform: scale(1);
         }
     </style>
 </head>
 <body>
 
-<!-- TV 프레임 (실제 이미지) -->
-<div class="tv-frame">
-    <!-- 실제 화면이 표시되는 영역 -->
-    <div class="screen-area">
-        <!-- CRT 질감 효과 -->
-        <div class="crt-overlay"></div>
-        
-        <!-- 영상 및 자막 -->
-        <div class="video-content">
-            <div class="logo">KBS1</div>
-            <div class="subtitles">
-                그는 조용히 에디터를 엽니다...<br>
-                밤샘 코딩의 시작인 것입니다.
+<div class="tv-scaler">
+    <div class="tv-frame">
+        <!-- 하단 다리 (간소화) -->
+        <div style="position:absolute; bottom:-20px; left:100px; width:60px; height:40px; background:#aaa; clip-path:polygon(20% 0, 80% 0, 100% 100%, 0 100%);"></div>
+        <div style="position:absolute; bottom:-20px; right:100px; width:60px; height:40px; background:#aaa; clip-path:polygon(20% 0, 80% 0, 100% 100%, 0 100%);"></div>
+
+        <div class="tv-bezel">
+            <div class="speaker"></div>
+            
+            <div class="screen-container">
+                <div class="crt-overlay"></div>
+                <div class="screen-content">
+                    <h1>> GAME_DEVELOPER_PORTFOLIO</h1>
+                    <p>NAME: HONG GIL DONG</p>
+                    <p>STATUS: READY TO CODE...</p>
+                    <br>
+                    <p>[PROJECTS]</p>
+                    <p>- NEON STRIKE (2025)</p>
+                    <p>- RETRO QUEST (2024)</p>
+                    <br>
+                    <p>> LOADING CORE SKILLS... <span class="cursor"></span></p>
+                </div>
             </div>
+
+            <div class="lg-logo">RETRO LG</div>
+            <!-- 전원 버튼 -->
+            <div style="position:absolute; bottom: -50px; left: 50%; transform:translateX(-50%); width:40px; height:40px; background:#ff4500; border-radius:50%; border:4px solid #dcd0c0; box-shadow: 0 4px #8b2500;"></div>
         </div>
     </div>
 </div>
