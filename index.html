@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT No Image</title>
+<title>CRT Shader Fixed</title>
 <style>
 body {
     margin: 0;
@@ -16,11 +16,12 @@ canvas {
     width: 800px;
     height: 600px;
     border-radius: 30px;
+    background: black;
 }
 </style>
 </head>
-<body>
 
+<body>
 <canvas id="crt"></canvas>
 
 <script>
@@ -30,7 +31,7 @@ const gl = canvas.getContext("webgl");
 canvas.width = 800;
 canvas.height = 600;
 
-/* ===== Vertex ===== */
+/* ===== Vertex Shader ===== */
 const vertex = `
 attribute vec2 position;
 varying vec2 vUv;
@@ -40,17 +41,19 @@ void main() {
 }
 `;
 
-/* ===== Fragment ===== */
+/* ===== Fragment Shader ===== */
 const fragment = `
 precision mediump float;
 varying vec2 vUv;
 
-/* 곡률 */
+/* CRT 곡률 (수정됨) */
 vec2 curve(vec2 uv) {
     uv = uv * 2.0 - 1.0;
 
-    uv.x *= 1.0 + pow(abs(uv.y), 2.0) * 0.25;
-    uv.y *= 1.0 + pow(abs(uv.x), 2.0) * 0.25;
+    float curvature = 0.07;
+
+    uv.x *= 1.0 + uv.y * uv.y * curvature;
+    uv.y *= 1.0 + uv.x * uv.x * curvature;
 
     return uv * 0.5 + 0.5;
 }
@@ -68,31 +71,31 @@ void main() {
         return;
     }
 
-    /* 테스트용 패턴 (이미지 대신) */
+    /* 테스트 패턴 */
     vec3 base = vec3(
-        uv.x,
-        uv.y,
-        sin(uv.x * 10.0) * 0.5 + 0.5
+        0.5 + 0.5*sin(uv.x * 10.0),
+        0.5 + 0.5*sin(uv.y * 10.0),
+        0.5 + 0.5*sin((uv.x + uv.y) * 10.0)
     );
 
     /* 색수차 */
-    float off = 0.003;
-    float r = base.r;
-    float g = vec3(uv.x, uv.y, 0.0).g;
-    float b = vec3(uv.x - off, uv.y, 0.0).b;
+    float off = 0.002;
+    float r = 0.5 + 0.5*sin((uv.x + off) * 10.0);
+    float g = 0.5 + 0.5*sin(uv.y * 10.0);
+    float b = 0.5 + 0.5*sin((uv.x - off) * 10.0);
 
     vec3 color = vec3(r, g, b);
 
     /* 스캔라인 */
-    float scan = sin(uv.y * 800.0) * 0.05;
+    float scan = sin(uv.y * 800.0) * 0.04;
     color -= scan;
 
     /* 노이즈 */
-    color += rand(uv) * 0.05;
+    color += rand(uv) * 0.03;
 
-    /* 비네팅 */
+    /* 비네팅 (수정됨) */
     float dist = distance(uv, vec2(0.5));
-    color *= smoothstep(0.8, 0.4, dist);
+    color *= smoothstep(0.9, 0.5, dist);
 
     gl_FragColor = vec4(color, 1.0);
 }
@@ -103,6 +106,11 @@ function compile(type, src) {
     const s = gl.createShader(type);
     gl.shaderSource(s, src);
     gl.compileShader(s);
+
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(s));
+    }
+
     return s;
 }
 
@@ -116,8 +124,8 @@ gl.useProgram(program);
 const buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-    -1,-1, 1,-1, -1,1,
-    -1,1, 1,-1, 1,1
+    -1,-1,  1,-1,  -1,1,
+    -1,1,   1,-1,   1,1
 ]), gl.STATIC_DRAW);
 
 const pos = gl.getAttribLocation(program, "position");
