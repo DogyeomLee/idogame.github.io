@@ -2,160 +2,110 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Retro K-Game CRT Loading</title>
     <style>
-        /* 2000년대 초반 비트맵 감성을 위해 돋움체 사용 */
+        /* 2000년대 초반 시스템 폰트 감성 */
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
             background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
             font-family: 'Dotum', '돋움', sans-serif;
-        }
-
-        /* 1. 4:3 비율의 CRT 모니터 본체 */
-        .crt-wrapper {
-            position: relative;
-            width: 90vw;
-            height: calc(90vw * 0.75);
-            max-height: 90vh;
-            max-width: calc(90vh * 1.33);
-            background: #050505;
-            /* [중요] 모서리 둥글게 처리하여 브라운관 실물 느낌 유도 */
-            border-radius: 60px; 
-            box-shadow: 0 0 100px rgba(0, 0, 0, 1), 0 0 0 20px #1a1a1a;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
 
-        /* 2. 렌즈 왜곡(Bulge) 및 화면 곡률 효과 */
-        .screen-inner {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(180deg, #0d121a 0%, #05080d 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 50px;
-            box-sizing: border-box;
-            
-            /* [렌즈 왜곡 핵심] 화면 가장자리를 곡선으로 처리하여 볼록한 효과 */
-            border-radius: 50% / 10%; 
+        /* 4:3 비율의 CRT 브라운관 프레임 */
+        .crt-monitor {
             position: relative;
-            transform: scale(1.05); /* 약간 키워 가장자리 왜곡 강조 */
+            width: 95vw;
+            height: calc(95vw * 0.75);
+            max-height: 95vh;
+            max-width: calc(95vh * 1.33);
+            background: #050508;
+            /* 렌즈 왜곡: 모서리를 크게 둥글게 */
+            border-radius: 80px; 
+            box-shadow: inset 0 0 100px #000, 0 0 0 30px #1a1a1a;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            overflow: hidden;
         }
 
-        /* 3. CRT 물리 효과 레이어 (스캔라인 + 비네팅) */
-        .crt-overlay {
+        /* 화면 굴곡 및 비네팅 효과 */
+        .screen-fx {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            /* 가로 주사선 및 화면 외곽 어둡게(비네팅) 처리 */
             background: 
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                radial-gradient(circle, transparent 40%, rgba(0,0,0,0.6) 100%);
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%),
+                radial-gradient(circle, transparent 50%, rgba(0,0,0,0.7) 100%);
             background-size: 100% 4px, cover;
-            z-index: 10;
-            pointer-events: none;
-            /* 유리 질감을 위한 약간의 노이즈 느낌 */
-            opacity: 0.9;
+            z-index: 10; pointer-events: none;
         }
 
-        /* 로딩 UI 요소 */
-        .loading-title {
-            color: #d1d1d1;
-            font-size: 3rem;
-            font-weight: 900;
-            letter-spacing: 10px;
-            margin-bottom: 40px;
-            text-shadow: 3px 3px 0px #000, 0 0 15px rgba(255,255,255,0.2);
+        /* 로딩 UI */
+        .loading-wrap {
+            width: 70%; text-align: center; z-index: 5;
+        }
+
+        .title {
+            color: #fff; font-size: 3rem; font-weight: 900;
+            letter-spacing: 15px; margin-bottom: 50px;
+            text-shadow: 4px 4px 0px #222;
             font-style: italic;
         }
 
-        .bar-container {
-            width: 80%;
-            height: 35px;
-            border: 4px solid #444;
-            background: #000;
-            padding: 4px;
-            box-sizing: border-box;
-            position: relative;
+        .bar-bg {
+            width: 100%; height: 40px;
+            border: 5px solid #444; background: #000;
+            padding: 5px; box-sizing: border-box;
         }
 
         .bar-fill {
-            width: 65%; /* 로딩 진행도 */
-            height: 100%;
-            background: linear-gradient(to right, #003399, #00aaff, #003399);
-            box-shadow: 0 0 15px rgba(0, 170, 255, 0.6);
-            animation: progress-move 4s infinite ease-in-out;
+            width: 0%; height: 100%;
+            background: linear-gradient(to right, #0033aa, #0099ff, #0033aa);
+            box-shadow: 0 0 20px rgba(0, 153, 255, 0.8);
+            animation: load 6s infinite steps(10); /* 뚝뚝 끊기는 로딩 감성 */
         }
 
-        .percentage {
-            color: #00aaff;
-            font-size: 1.5rem;
-            margin-top: 15px;
+        .status {
+            color: #0099ff; font-size: 1.5rem; margin-top: 20px;
             font-weight: bold;
         }
 
-        .tip-box {
-            margin-top: 50px;
-            color: #666;
-            font-size: 1.2rem;
-            text-align: center;
+        .tip {
+            margin-top: 60px; color: #777; font-size: 1.1rem;
+            border-top: 1px solid #333; padding-top: 20px;
         }
 
-        /* 애니메이션 */
-        @keyframes progress-move {
+        @keyframes load {
             0% { width: 0%; }
-            50% { width: 65%; }
+            50% { width: 70%; }
             100% { width: 100%; }
         }
 
-        @keyframes screen-flicker {
-            0% { opacity: 0.98; }
-            50% { opacity: 1; }
-            100% { opacity: 0.99; }
+        /* 화면 미세 떨림 */
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            100% { opacity: 1; }
         }
-        .screen-inner { animation: screen-flicker 0.08s infinite; }
-
-        /* 화면 상단 반사광 (유리 효과) */
-        .glass-reflection {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 40%);
-            z-index: 11;
-            pointer-events: none;
-        }
+        .crt-monitor { animation: flicker 0.05s infinite; }
     </style>
 </head>
 <body>
 
-<div class="crt-wrapper">
-    <div class="crt-overlay"></div>
-    <div class="glass-reflection"></div>
+<div class="crt-monitor">
+    <div class="screen-fx"></div>
     
-    <div class="screen-inner">
-        <div class="loading-title">LOADING...</div>
+    <div class="loading-wrap">
+        <div class="title">SINCE 2001</div>
         
-        <div class="bar-container">
+        <div class="bar-bg">
             <div class="bar-fill"></div>
         </div>
         
-        <div class="percentage">리소스 데이터 분석 중 (65%)</div>
+        <div class="status">데이터 수신 중...</div>
         
-        <div class="tip-box">
-            <b>[도움말]</b> 오래된 모니터는 자석을 가까이하면 <br> <b>색상 왜곡</b>이 발생할 수 있습니다.
-        </div>
-
-        <div style="position:absolute; bottom: 40px; color: #333; font-size: 0.8rem;">
-            BUILD 2026.04.30.01 (KR)
+        <div class="tip">
+            [도움말] 2001년에 태어난 당신은 <br>
+            <b>거상</b>과 <b>크아</b>가 동갑내기 친구입니다.
         </div>
     </div>
 </div>
