@@ -2,143 +2,110 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>90s Analog TV - 동물의 왕국</title>
+    <title>Retro Wildlife TV</title>
     <style>
         body {
-            background-color: #0a0a0a;
+            background-color: #050505;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            perspective: 1500px; /* TV의 입체감을 위한 원근법 */
+            overflow: hidden;
         }
 
-        /* 1. TV 본체 (리얼한 플라스틱 바디) */
-        .tv-body {
+        /* 1. TV 외관 (실제 사진 소스를 배경으로 활용하는 구조) */
+        .tv-wrapper {
             position: relative;
-            width: 850px;
-            height: 650px;
-            background: #2a2a2a; /* 짙은 회색 플라스틱 */
-            /* 상단은 좁고 하단은 넓은 구형 TV 특유의 형태 */
-            border-radius: 40px 40px 100px 100px / 20px 20px 50px 50px;
-            box-shadow: 
-                inset 10px 10px 20px rgba(255,255,255,0.05),
-                inset -10px -10px 30px rgba(0,0,0,0.8),
-                30px 50px 100px rgba(0,0,0,1);
+            width: 1000px; /* 큰 화면 */
+            height: 750px;
+            /* 실제 TV의 질감을 가진 이미지를 배경으로 사용 */
+            background: url('https://images.rawpixel.com/image_png_800/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy9tZXNzH3YvcG5nL2VsZW1lbnRzL3Jhd3BpeGVsLWl0ZW0taWRlYS00NTU4NjkucG5n') no-repeat center;
+            background-size: contain;
             display: flex;
             justify-content: center;
             align-items: center;
-            border-bottom: 15px solid #1a1a1a;
         }
 
-        /* TV 하단 스피커 및 버튼 영역 */
-        .tv-controls {
+        /* 2. 화면 영역 (TV 프레임 안쪽 구멍에 딱 맞춤) */
+        .screen-area {
             position: absolute;
-            bottom: 30px;
-            width: 80%;
-            height: 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 40px;
-        }
-
-        .speaker-grill {
-            width: 150px;
-            height: 20px;
-            background: repeating-linear-gradient(90deg, #111, #111 4px, transparent 4px, transparent 8px);
-        }
-
-        .power-btn {
-            width: 15px;
-            height: 15px;
-            background: #8b0000;
-            border-radius: 50%;
-            box-shadow: 0 0 5px red;
-        }
-
-        /* 2. 볼록하게 튀어나온 브라운관 유리 */
-        .crt-glass-container {
-            width: 85%;
-            height: 75%;
+            width: 615px;  /* 이미지의 화면 구멍 크기에 맞게 조절 필요 */
+            height: 460px;
+            top: 108px;    /* 이미지 위치에 맞게 세밀하게 조정 */
+            left: 145px;
             background: #000;
-            border-radius: 50% / 10%; /* 볼록한 렌즈 형태 */
-            position: relative;
-            top: -20px;
+            border-radius: 40px / 20px; /* 화면의 미세한 곡률 */
             overflow: hidden;
-            border: 12px solid #1a1a1a; /* 화면 테두리 고무 패킹 느낌 */
-            box-shadow: 0 0 30px rgba(0,0,0,1);
+            z-index: -1; /* TV 프레임 아래로 배치 */
         }
 
-        /* 3. 실제 화면 송출 (동물의 왕국 배경) */
-        .screen-content {
+        /* 3. 진짜 다큐멘터리 같은 영상 소스 및 효과 */
+        .video-overlay {
             width: 100%;
             height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), 
-                        url('https://images.unsplash.com/photo-1549366021-9f761d450615?q=80&w=2000');
+            background: url('https://images.unsplash.com/photo-1549366021-9f761d450615?q=80&w=1000') no-repeat center;
             background-size: cover;
+            filter: contrast(1.1) saturate(1.2) sepia(0.2); /* 옛날 영상 색감 */
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            padding-bottom: 50px;
+            align-items: center;
+            padding-bottom: 40px;
             box-sizing: border-box;
-            animation: flicker 0.15s infinite;
         }
 
-        /* 4. 레트로 다큐멘터리 자막 */
-        .subtitles {
-            font-family: "Malgun Gothic", "Gulim", sans-serif;
-            color: #fff;
-            font-size: 36px;
-            font-weight: 900;
-            text-align: center;
-            /* 자막의 굵은 검정 테두리 (당시 방송 국룰) */
-            text-shadow: 
-                -3px -3px 0 #000, 3px -3px 0 #000, 
-                -3px 3px 0 #000, 3px 3px 0 #000,
-                0 5px 10px rgba(0,0,0,1);
-            line-height: 1.5;
-        }
-
-        /* 5. 화면 위 노이즈 및 왜곡 레이어 */
-        .overlay {
+        /* 4. [핵심] 브라운관 질감 필터 (지지직거리는 노이즈) */
+        .crt-noise {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://upload.wikimedia.org/wikipedia/commons/7/76/1k_filmgrain.gif'); /* 필름 노이즈 */
+            opacity: 0.15;
             pointer-events: none;
-            /* 화면 광택(Glare) 및 스캔라인 */
-            background: 
-                radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%),
-                repeating-linear-gradient(0deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px);
+            z-index: 5;
+        }
+
+        /* 5. 90년대 자막 (삼국지+다큐멘터리 폰트) */
+        .subtitles {
+            color: #fff;
+            font-family: 'Gulim', 'Dotum', sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.4;
+            /* 90년대 방송국 특유의 진한 검정 외곽선 */
+            text-shadow: 
+                2px 2px 0 #000, -2px -2px 0 #000, 
+                2px -2px 0 #000, -2px 2px 0 #000,
+                0 0 8px rgba(0,0,0,1);
             z-index: 10;
         }
 
-        @keyframes flicker {
-            0% { opacity: 0.98; }
-            50% { opacity: 1; }
-            100% { opacity: 0.99; }
+        /* 방송국 로고 */
+        .logo {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            color: rgba(255,255,255,0.4);
+            font-family: serif;
+            font-size: 20px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div class="tv-body">
-    <!-- 화면 영역 -->
-    <div class="crt-glass-container">
-        <div class="overlay"></div>
-        <div class="screen-content">
+<div class="tv-wrapper">
+    <!-- 화면 구멍 안쪽 -->
+    <div class="screen-area">
+        <div class="crt-noise"></div>
+        <div class="video-overlay">
+            <div class="logo">KBS1</div>
             <div class="subtitles">
-                그는 굶주린 하이에나처럼<br>
-                새로운 코드를 찾아 헤맵니다...
+                그는 조용히 에디터를 엽니다...<br>
+                밤샘 코딩의 시작인 것입니다.
             </div>
         </div>
-    </div>
-
-    <!-- 하단 조작부 -->
-    <div class="tv-controls">
-        <div class="speaker-grill"></div>
-        <div style="color: #444; font-size: 10px; font-weight: bold;">ANALOG S-2000</div>
-        <div class="power-btn"></div>
     </div>
 </div>
 
