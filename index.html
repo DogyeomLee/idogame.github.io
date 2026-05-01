@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Pure CRT Shader Template</title>
+    <title>Retro Game Portfolio</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
         
@@ -13,41 +13,29 @@
             justify-content: center; 
             align-items: center; 
             height: 100vh; 
+            width: 100vw;
             overflow: hidden;
             font-family: 'Nanum Gothic Coding', monospace;
         }
 
+        /* 화면을 최대한 크게 설정 */
         #wrapper { 
             position: relative; 
-            width: 95vh; /* 화면 크기 최대화 */
-            height: 71.25vh; 
+            width: 98vw; 
+            height: 98vh; 
+            max-width: 1200px;
+            max-height: 900px;
         }
 
         #shaderCanvas { width: 100%; height: 100%; display: block; }
         #gameCanvas { display: none; }
-
-        /* 조작 버튼 (화면 하단 플로팅) */
-        #ui-controls {
+        
+        /* 숨겨진 실제 클릭 영역들 (쉐이더 좌표 계산용) */
+        #interaction-layer {
             position: absolute;
-            bottom: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
+            top: 0; left: 0; width: 100%; height: 100%;
+            cursor: crosshair;
         }
-
-        .btn {
-            background: #111;
-            border: 1px solid #333;
-            color: #666;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: 0.3s;
-        }
-
-        .btn:hover { color: #fff; border-color: #fff; }
-        .btn.active { color: #ff0055; border-color: #ff0055; text-shadow: 0 0 5px #ff0055; }
     </style>
 </head>
 <body>
@@ -55,104 +43,98 @@
 <div id="wrapper">
     <canvas id="shaderCanvas"></canvas>
     <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui-controls">
-        <button class="btn active" id="crtBtn" onclick="toggleCRT()">CRT EFFECT: ON</button>
-        <button class="btn" onclick="prevPage()">PREV</button>
-        <button class="btn" onclick="nextPage()">NEXT</button>
-    </div>
+    <div id="interaction-layer"></div>
 </div>
 
 <script>
-/** [데이터 수정 영역] : 여기에 프로젝트를 추가하세요 **/
-const portfolioData = [
-    {
-        title: "MAIN TERMINAL",
-        subtitle: "SYSTEM STATUS: ONLINE",
-        content: ["WELCOME TO MY PORTFOLIO", "SELECT PAGE TO VIEW DETAILS", "ESTABLISHED: 1990-2026"]
-    },
-    {
-        title: "PROJECT: NEON",
-        subtitle: "TECH: C++, OPENGL",
-        content: ["- 실시간 레이트레이싱 엔진", "- 90년대 아케이드 감성 재현", "- 최적화 알고리즘 적용"]
-    },
-    {
-        title: "PROJECT: ZELDA",
-        subtitle: "TECH: UNITY, C#",
-        content: ["- 탑다운 액션 어드벤처", "- 절차적 던전 생성 시스템", "- 레트로 도트 그래픽"]
-    }
-];
+/** [설정 영역] **/
+const menuItems = ["START GAME", "PROJECTS", "TECH SKILLS", "SYSTEM SHUTDOWN"];
+let selectedIndex = 0;
+let currentMode = "TITLE"; // TITLE, PROJECTS, SKILLS
+let mousePos = { x: 0, y: 0 };
+let isPowerOff = false;
 
-let currentPage = 0;
-let isCrtOn = true;
-let audioCtx = null, gainNode = null;
-
-function nextPage() { currentPage = (currentPage + 1) % portfolioData.length; playBeep(); }
-function prevPage() { currentPage = (currentPage - 1 + portfolioData.length) % portfolioData.length; playBeep(); }
-
-function toggleCRT() {
-    isCrtOn = !isCrtOn;
-    const btn = document.getElementById('crtBtn');
-    btn.textContent = `CRT EFFECT: ${isCrtOn ? 'ON' : 'OFF'}`;
-    btn.classList.toggle('active', isCrtOn);
-    if(gainNode) gainNode.gain.setTargetAtTime(isCrtOn ? 0.02 : 0, 0, 0.1);
-}
-
-function playBeep() {
-    if(!audioCtx) initAudio();
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.connect(g); g.connect(audioCtx.destination);
-    osc.type = 'square'; osc.frequency.value = 880;
-    g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-}
-
-/** 2D 캔버스 렌더링 (데이터 기반) **/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = 800; canvas.height = 600;
+canvas.width = 1000; canvas.height = 750;
 
-function drawUI() {
-    const data = portfolioData[currentPage];
+/** 마우스 이벤트 처리 **/
+const layer = document.getElementById("interaction-layer");
+layer.addEventListener('mousemove', (e) => {
+    const rect = layer.getBoundingClientRect();
+    mousePos.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mousePos.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+
+layer.addEventListener('click', () => {
+    if (isPowerOff) { isPowerOff = false; return; }
     
-    // 배경
-    ctx.fillStyle = "#050508"; 
-    ctx.fillRect(0, 0, 800, 600);
-    
-    // 장식선
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(20, 20, 760, 560);
+    // 메뉴 클릭 판정
+    if (currentMode === "TITLE") {
+        menuItems.forEach((item, i) => {
+            const yPos = 400 + i * 60;
+            if (mousePos.y > yPos - 30 && mousePos.y < yPos + 20 && mousePos.x > 350 && mousePos.x < 650) {
+                handleMenu(i);
+            }
+        });
+    } else {
+        currentMode = "TITLE"; // 상세 페이지에서 클릭하면 다시 타이틀로
+    }
+});
 
-    // 제목
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 45px 'Nanum Gothic Coding'";
-    ctx.textAlign = "center";
-    ctx.fillText(data.title, 400, 150);
-
-    // 부제목 (강조색)
-    ctx.fillStyle = "#ff0055";
-    ctx.font = "20px 'Nanum Gothic Coding'";
-    ctx.fillText(data.subtitle, 400, 200);
-
-    // 본문 리스트
-    ctx.fillStyle = "#ccc";
-    ctx.font = "24px 'Nanum Gothic Coding'";
-    ctx.textAlign = "left";
-    data.content.forEach((line, i) => {
-        ctx.fillText(line, 150, 300 + (i * 50));
-    });
-
-    // 페이지 인디케이터
-    ctx.textAlign = "center";
-    ctx.font = "14px 'Nanum Gothic Coding'";
-    ctx.fillStyle = "#444";
-    ctx.fillText(`PAGE ${currentPage + 1} / ${portfolioData.length}`, 400, 550);
+function handleMenu(index) {
+    if (index === 0) currentMode = "ABOUT";
+    if (index === 1) currentMode = "PROJECTS";
+    if (index === 2) currentMode = "SKILLS";
+    if (index === 3) isPowerOff = true;
 }
 
-/** WebGL 쉐이더 (강력한 왜곡 효과) **/
+/** 메인 드로잉 로직 (화면 안의 UI) **/
+function draw() {
+    ctx.fillStyle = isPowerOff ? "#000" : "#050508";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (isPowerOff) return;
+
+    if (currentMode === "TITLE") {
+        // 타이틀 로고
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 80px 'Nanum Gothic Coding'";
+        ctx.fillText("DEV_PORTFOLIO", canvas.width/2, 250);
+        ctx.font = "20px 'Nanum Gothic Coding'";
+        ctx.fillStyle = "#ff0055";
+        ctx.fillText("VER 1.0 - 2026 ANALOG SIGNAL", canvas.width/2, 300);
+
+        // 버튼 메뉴들
+        menuItems.forEach((item, i) => {
+            const yPos = 400 + i * 60;
+            const isHover = mousePos.y > yPos - 30 && mousePos.y < yPos + 20 && mousePos.x > 350 && mousePos.x < 650;
+            
+            if (isHover) {
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(350, yPos - 35, 300, 50);
+                ctx.fillStyle = "#000";
+                ctx.fillText("> " + item + " <", canvas.width/2, yPos);
+            } else {
+                ctx.strokeStyle = "#fff";
+                ctx.strokeRect(350, yPos - 35, 300, 50);
+                ctx.fillStyle = "#fff";
+                ctx.fillText(item, canvas.width/2, yPos);
+            }
+        });
+    } else {
+        // 상세 페이지 공통 UI
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#00ffff";
+        ctx.font = "bold 40px 'Nanum Gothic Coding'";
+        ctx.fillText("[" + currentMode + "]", canvas.width/2, 150);
+        ctx.fillStyle = "#fff";
+        ctx.font = "20px 'Nanum Gothic Coding'";
+        ctx.fillText("내용을 여기에 추가하세요... (클릭 시 뒤로가기)", canvas.width/2, 400);
+    }
+}
+
+/** 강력한 CRT 쉐이더 **/
 const sCanvas = document.getElementById("shaderCanvas");
 const gl = sCanvas.getContext("webgl");
 
@@ -171,14 +153,12 @@ const fragmentSource = `
     varying vec2 vTexCoord;
     uniform sampler2D uTexture;
     uniform float uTime;
-    uniform bool uEnabled;
 
     vec2 curve(vec2 uv) {
-        if(!uEnabled) return uv;
         uv = (uv - 0.5) * 2.0;
         uv *= 1.1;	
-        uv.x *= 1.0 + pow((abs(uv.y) / 2.5), 2.0); // 가로 왜곡 강화
-        uv.y *= 1.0 + pow((abs(uv.x) / 2.0), 2.0); // 세로 왜곡 강화
+        uv.x *= 1.0 + pow((abs(uv.y) / 2.0), 2.0);
+        uv.y *= 1.0 + pow((abs(uv.x) / 1.5), 2.0);
         return (uv / 2.0) + 0.5;
     }
 
@@ -188,34 +168,29 @@ const fragmentSource = `
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
         }
 
-        if(!uEnabled) {
-            gl_FragColor = texture2D(uTexture, uv); return;
-        }
-
-        // 색수차 + 지터
-        float t = uTime;
         vec3 col;
+        float t = uTime;
+        
+        // RGB 채널 분리
         col.r = texture2D(uTexture, uv + vec2(0.002, 0.0)).r;
         col.g = texture2D(uTexture, uv).g;
         col.b = texture2D(uTexture, uv - vec2(0.002, 0.0)).b;
 
-        // 강력한 주사선
-        float scanline = sin(uv.y * 700.0 + t * 10.0) * 0.15;
+        // 강력한 주사선 및 노이즈
+        float scanline = sin(uv.y * 800.0 + t * 10.0) * 0.1;
+        float noise = (fract(sin(dot(uv * t, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.15;
         col -= scanline;
-
-        // 아날로그 노이즈
-        float noise = (fract(sin(dot(uv * t, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.2;
         col += noise;
 
-        // 비네팅 (둥근 테두리 그림자)
+        // 비네팅
         float vig = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-        col *= pow(30.0 * vig, 0.5);
+        col *= pow(30.0 * vig, 0.4);
 
         gl_FragColor = vec4(col, 1.0);
     }
 `;
 
-// [WebGL 초기화 코드 - 생략 없이 포함]
+// [WebGL 초기화 코드]
 const program = gl.createProgram();
 function createShader(gl, type, source) {
     const s = gl.createShader(type);
@@ -231,29 +206,15 @@ const posLoc = gl.getAttribLocation(program, "position");
 gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 const texture = gl.createTexture();
 const uTimeLoc = gl.getUniformLocation(program, "uTime");
-const uEnabledLoc = gl.getUniformLocation(program, "uEnabled");
-
-function initAudio() {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
-    const out = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < out.length; i++) out[i] = Math.random() * 2 - 1;
-    const noiseNode = audioCtx.createBufferSource();
-    noiseNode.buffer = noiseBuffer; noiseNode.loop = true;
-    gainNode = audioCtx.createGain(); gainNode.gain.value = 0.015;
-    noiseNode.connect(gainNode); gainNode.connect(audioCtx.destination);
-    noiseNode.start();
-}
 
 function render() {
     sCanvas.width = sCanvas.clientWidth; sCanvas.height = sCanvas.clientHeight;
     gl.viewport(0, 0, sCanvas.width, sCanvas.height);
-    drawUI();
+    draw();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.uniform1f(uTimeLoc, performance.now() / 1000);
-    gl.uniform1i(uEnabledLoc, isCrtOn ? 1 : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(render);
 }
