@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT GAME UI</title>
+<title>CRT FINAL FIX</title>
 
 <style>
 body{
@@ -14,7 +14,7 @@ body{
     align-items:center;
 }
 
-/* 4:3 */
+/* 4:3 고정 */
 #wrap{
     aspect-ratio:4/3;
     height:95vh;
@@ -25,8 +25,6 @@ body{
     position:relative;
     width:100%;
     height:100%;
-    overflow:hidden;
-    background:black;
 }
 
 /* 캔버스 */
@@ -36,17 +34,18 @@ canvas{
     height:100%;
 }
 
-/* 🪟 유리 (마우스 따라 움직임) */
+/* 🪟 유리 (확실히 보이게) */
 #glass{
     position:absolute;
     width:100%;
     height:100%;
     pointer-events:none;
+
     background:
         radial-gradient(circle at 50% 50%,
-            rgba(255,255,255,0.18),
-            rgba(255,255,255,0.05) 30%,
-            transparent 60%);
+        rgba(255,255,255,0.25),
+        rgba(255,255,255,0.08) 30%,
+        transparent 60%);
 }
 
 /* 가장자리 */
@@ -55,7 +54,7 @@ canvas{
     width:100%;
     height:100%;
     pointer-events:none;
-    box-shadow: inset 0 0 80px rgba(0,0,0,0.9);
+    box-shadow: inset 0 0 120px rgba(0,0,0,1);
 }
 </style>
 </head>
@@ -79,89 +78,33 @@ const W=800,H=600;
 
 const out=document.getElementById("out");
 const buf=document.getElementById("buf");
-const ctx=buf.getContext("2d");
-const glass=document.getElementById("glass");
 
 out.width=W; out.height=H;
 buf.width=W; buf.height=H;
 
-/* 마우스 */
-let mx=400,my=300;
-out.addEventListener("mousemove",(e)=>{
-    const r=out.getBoundingClientRect();
-    mx=(e.clientX-r.left)*(W/r.width);
-    my=(e.clientY-r.top)*(H/r.height);
+const ctx=buf.getContext("2d");
 
-    // 🪟 유리 이동
-    const px = (mx/W)*100;
-    const py = (my/H)*100;
-    glass.style.background =
-        `radial-gradient(circle at ${px}% ${py}%,
-        rgba(255,255,255,0.18),
-        rgba(255,255,255,0.05) 30%,
-        transparent 60%)`;
-});
-
-/* 🎮 메뉴 */
-const menu=["START","OPTIONS","EXIT"];
-let hover=-1;
-
-out.addEventListener("click",()=>{
-    if(hover!==-1){
-        alert(menu[hover]);
-    }
-});
-
-/* 🌌 별 */
-let stars=[];
-for(let i=0;i<80;i++){
-    stars.push({
-        x:Math.random()*W,
-        y:Math.random()*H,
-        z:Math.random()*2+0.5
-    });
-}
-
-/* UI 그리기 */
+/* ===== UI ===== */
 function draw(){
-
-    /* 배경 */
     ctx.fillStyle="#05060a";
     ctx.fillRect(0,0,W,H);
 
-    /* 🌌 3D 별 */
-    stars.forEach(s=>{
-        s.y+=s.z*0.5;
-        if(s.y>H){ s.y=0; s.x=Math.random()*W; }
-
-        let px = s.x + (mx-W/2)*0.02*s.z;
-        let py = s.y + (my-H/2)*0.02*s.z;
-
-        ctx.fillStyle="white";
-        ctx.fillRect(px,py,s.z*2,s.z*2);
-    });
-
-    /* 타이틀 */
-    ctx.textAlign="center";
     ctx.fillStyle="#fff";
+    ctx.textAlign="center";
     ctx.font="bold 70px monospace";
-    ctx.fillText("CRT GAME",400,200);
+    ctx.fillText("CRT ACTIVE",400,260);
 
-    /* 메뉴 */
-    menu.forEach((m,i)=>{
-        let y=320+i*60;
-
-        let isHover = mx>250 && mx<550 && my>y-30 && my<y+20;
-        if(isHover) hover=i;
-
-        ctx.fillStyle=isHover?"#fff":"#888";
-        ctx.font=isHover?"bold 28px monospace":"24px monospace";
-        ctx.fillText(m,400,y);
-    });
+    ctx.font="20px monospace";
+    ctx.fillText("EFFECT TEST",400,320);
 }
 
-/* WebGL */
+/* ===== WebGL ===== */
 const gl=out.getContext("webgl");
+
+/* 실패 체크 */
+if(!gl){
+    alert("WebGL 안됨");
+}
 
 /* vertex */
 const vs=gl.createShader(gl.VERTEX_SHADER);
@@ -169,13 +112,13 @@ gl.shaderSource(vs,`
 attribute vec2 p;
 varying vec2 v;
 void main(){
-v=(p+1.)/2.;
-v.y=1.-v.y;
-gl_Position=vec4(p,0,1);
+    v=(p+1.)/2.;
+    v.y=1.-v.y;
+    gl_Position=vec4(p,0,1);
 }`);
 gl.compileShader(vs);
 
-/* fragment */
+/* fragment (🔥 확실한 효과) */
 const fs=gl.createShader(gl.FRAGMENT_SHADER);
 gl.shaderSource(fs,`
 precision mediump float;
@@ -183,11 +126,11 @@ varying vec2 v;
 uniform sampler2D t;
 uniform float time;
 
-/* CRT 곡면 */
+/* 강한 곡면 */
 vec2 distort(vec2 uv){
-    uv=uv*2.0-1.0;
-    float d=dot(uv,uv);
-    uv*=1.0 + d*0.2;
+    uv = uv*2.0-1.0;
+    float d = dot(uv,uv);
+    uv *= 1.0 + d*0.3;
     return uv*0.5+0.5;
 }
 
@@ -197,42 +140,43 @@ return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
 
 void main(){
 
-vec2 u=distort(v);
+vec2 u = distort(v);
 
+/* 바깥 검정 */
 if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
     gl_FragColor=vec4(0,0,0,1);
     return;
 }
 
-/* RGB */
-float r=texture2D(t,u+vec2(0.003,0)).r;
-float g=texture2D(t,u).g;
-float b=texture2D(t,u-vec2(0.003,0)).b;
+/* 🔴 RGB 분리 (확실히 보이게) */
+float r = texture2D(t, u + vec2(0.004,0)).r;
+float g = texture2D(t, u).g;
+float b = texture2D(t, u - vec2(0.004,0)).b;
 
-vec3 col=vec3(r,g,b);
+vec3 col = vec3(r,g,b);
 
-/* Bloom */
-vec3 bloom=
-    texture2D(t,u+vec2(0.003,0)).rgb+
-    texture2D(t,u-vec2(0.003,0)).rgb+
-    texture2D(t,u+vec2(0,0.003)).rgb+
+/* 💡 Bloom */
+vec3 bloom =
+    texture2D(t,u+vec2(0.003,0)).rgb +
+    texture2D(t,u-vec2(0.003,0)).rgb +
+    texture2D(t,u+vec2(0,0.003)).rgb +
     texture2D(t,u-vec2(0,0.003)).rgb;
 
-bloom*=0.25;
+bloom *= 0.25;
 
-float bright=max(max(col.r,col.g),col.b);
-col+=bloom*bright*0.6;
+float bright = max(max(col.r,col.g),col.b);
+col += bloom * bright * 0.7;
 
-/* 스캔라인 */
-col-=sin(u.y*900.0)*0.15;
+/* 📺 스캔라인 */
+col -= sin(u.y*1000.0)*0.2;
 
-/* 노이즈 */
-col+=rand(u+time)*0.04;
+/* 📡 노이즈 */
+col += rand(u+time)*0.05;
 
-/* 비네팅 */
-col*=1.0-length(v-0.5)*1.2;
+/* 🔥 비네팅 */
+col *= 1.0 - length(v-0.5)*1.3;
 
-gl_FragColor=vec4(col,1.0);
+gl_FragColor = vec4(col,1.0);
 }`);
 gl.compileShader(fs);
 
@@ -259,6 +203,8 @@ gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
 const tex=gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D,tex);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 
 const timeLoc=gl.getUniformLocation(prog,"time");
 
@@ -267,8 +213,10 @@ function loop(t){
 
 draw();
 
-gl.viewport(0,0,W,H);
+/* 🔥 핵심: viewport */
+gl.viewport(0,0,out.width,out.height);
 
+/* 🔥 핵심: texture 업데이트 */
 gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
 
 gl.uniform1f(timeLoc,t*0.001);
