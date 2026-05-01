@@ -2,37 +2,38 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Ultimate CRT Glass</title>
+<title>Clean CRT Glass Panel</title>
 
 <style>
 body{
     margin:0;
-    background:#05060a;
+    background:#0a0c12;
     height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
 }
 
-/* 화면 크기 크게 */
+/* 화면 비율 */
 #wrap{
     aspect-ratio:4/3;
-    width:96vw;
-    max-width:calc(96vh * 4/3);
-    max-height:96vh;
+    width:92vw;
+    max-width:calc(92vh * 4/3);
 }
 
+/* 화면 */
 #screen{
     position:relative;
     width:100%;
     height:100%;
-    background:black;
-    border-radius:20px;
+    background:#000;
+    border-radius:18px;
     overflow:hidden;
-    box-shadow:0 0 60px black, inset 0 0 40px black;
+    box-shadow:
+        0 30px 100px rgba(0,0,0,0.8),
+        inset 0 0 40px rgba(0,0,0,0.6);
 }
 
-/* 캔버스 */
 canvas{
     position:absolute;
     width:100%;
@@ -45,26 +46,27 @@ canvas{
     width:100%;
     height:100%;
     pointer-events:none;
+    border-radius:18px;
 
     background:
         linear-gradient(120deg,
-            rgba(255,255,255,0.18) 0%,
-            rgba(255,255,255,0.05) 20%,
-            rgba(255,255,255,0.0) 40%
+            rgba(255,255,255,0.15) 0%,
+            rgba(255,255,255,0.05) 25%,
+            rgba(255,255,255,0.0) 50%
         );
-
-    mix-blend-mode:screen;
 }
 
-/* CRT 곡면 가장자리 */
-#curve{
+/* 가장자리 어둡게 */
+#edge{
     position:absolute;
     width:100%;
     height:100%;
     pointer-events:none;
+    border-radius:18px;
+
     box-shadow:
-        inset 0 0 100px rgba(0,0,0,0.9),
-        inset 0 0 200px rgba(0,0,0,0.6);
+        inset 0 0 50px rgba(0,0,0,0.7),
+        inset 0 0 100px rgba(0,0,0,0.4);
 }
 </style>
 </head>
@@ -73,11 +75,13 @@ canvas{
 
 <div id="wrap">
 <div id="screen">
+
     <canvas id="out"></canvas>
     <canvas id="buf" style="display:none;"></canvas>
 
     <div id="glass"></div>
-    <div id="curve"></div>
+    <div id="edge"></div>
+
 </div>
 </div>
 
@@ -92,30 +96,19 @@ buf.width=W; buf.height=H;
 
 const ctx=buf.getContext("2d");
 
-let crt=true;
-let power=true;
-
-/* 키 */
-window.addEventListener("keydown",(e)=>{
-    const k=e.key.toLowerCase();
-    if(k==="c") crt=!crt;
-    if(k==="p") power=!power;
-});
-
 /* UI */
 function draw(){
-    ctx.fillStyle="#0c0c16";
+    ctx.fillStyle="#0d111a";
     ctx.fillRect(0,0,W,H);
 
-    if(!power) return;
-
-    ctx.fillStyle="#fff";
+    ctx.fillStyle="#ffffff";
     ctx.textAlign="center";
-    ctx.font="bold 70px monospace";
-    ctx.fillText("VIRTUAL CRT",400,250);
+    ctx.font="bold 72px sans-serif";
+    ctx.fillText("VIRTUAL CRT",400,260);
 
-    ctx.font="18px monospace";
-    ctx.fillText("C : CRT  /  P : POWER",400,320);
+    ctx.font="18px sans-serif";
+    ctx.fillStyle="#aaa";
+    ctx.fillText("Clean Glass Panel Mode",400,320);
 }
 
 /* WebGL */
@@ -127,9 +120,9 @@ gl.shaderSource(vs,`
 attribute vec2 p;
 varying vec2 v;
 void main(){
-v=(p+1.)/2.;
-v.y=1.-v.y;
-gl_Position=vec4(p,0,1);
+    v=(p+1.)/2.;
+    v.y=1.-v.y;
+    gl_Position=vec4(p,0,1);
 }`);
 gl.compileShader(vs);
 
@@ -139,77 +132,44 @@ gl.shaderSource(fs,`
 precision mediump float;
 varying vec2 v;
 uniform sampler2D t;
-uniform float time;
-uniform float crt;
 
-float rand(vec2 c){
-return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
-}
-
-/* 🌀 강한 CRT 곡면 */
+/* 🔥 아주 약한 곡면 */
 vec2 distort(vec2 uv){
     uv = uv * 2.0 - 1.0;
-
-    float x = uv.x;
-    float y = uv.y;
-
-    uv.x = x * (1.0 + y*y * 0.4);
-    uv.y = y * (1.0 + x*x * 0.4);
-
+    float d = dot(uv,uv);
+    uv *= 1.0 + d * 0.07;
     return uv * 0.5 + 0.5;
 }
 
 void main(){
 
-vec2 u = crt>0.5 ? distort(v) : v;
+vec2 u = distort(v);
 
 if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
     gl_FragColor=vec4(0,0,0,1);
     return;
 }
 
-/* 📼 VHS 라인 글리치 */
-float line = step(0.96, rand(vec2(time*0.5, floor(v.y*200.0))));
-float shift = line * (rand(vec2(time, v.y)) - 0.5) * 0.08;
-u.x += shift;
+/* 기본 색 */
+vec3 col = texture2D(t,u).rgb;
 
-/* 🔴 색 번짐 */
-float r =
-    texture2D(t, u + vec2(0.003, 0.0)).r * 0.6 +
-    texture2D(t, u + vec2(0.006, 0.0)).r * 0.4;
-
-float g =
-    texture2D(t, u).g * 0.7 +
-    texture2D(t, u + vec2(0.002, 0.0)).g * 0.3;
-
-float b =
-    texture2D(t, u - vec2(0.002, 0.0)).b * 0.85 +
-    texture2D(t, u - vec2(0.004, 0.0)).b * 0.15;
-
-vec3 col=vec3(r,g,b);
-
-/* scanline */
-col -= sin(u.y*700.0)*0.12;
-
-/* noise */
-col += rand(u+time)*0.04;
-
-/* 💡 강한 Bloom */
+/* 💡 은은한 Bloom */
 vec3 bloom =
-    texture2D(t, u + vec2(0.002, 0.0)).rgb +
-    texture2D(t, u - vec2(0.002, 0.0)).rgb +
-    texture2D(t, u + vec2(0.0, 0.002)).rgb +
-    texture2D(t, u - vec2(0.0, 0.002)).rgb +
-    texture2D(t, u + vec2(0.004, 0.0)).rgb +
-    texture2D(t, u - vec2(0.004, 0.0)).rgb;
+    texture2D(t,u+vec2(0.0015,0)).rgb +
+    texture2D(t,u-vec2(0.0015,0)).rgb +
+    texture2D(t,u+vec2(0,0.0015)).rgb +
+    texture2D(t,u-vec2(0,0.0015)).rgb;
 
-bloom /= 6.0;
+bloom *= 0.25;
 
 float bright = max(max(col.r,col.g),col.b);
-col += bloom * bright * 0.8;
+col += bloom * bright * 0.25;
 
-/* 🔥 가장자리 어둡게 */
-col *= 1.0 - pow(length(v - 0.5) * 1.4, 2.0);
+/* 📺 약한 스캔라인 */
+col -= sin(u.y*500.0) * 0.03;
+
+/* 🎯 자연스러운 비네팅 */
+col *= 1.0 - length(v-0.5)*0.6;
 
 gl_FragColor=vec4(col,1.0);
 }`);
@@ -241,25 +201,18 @@ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 
-const timeLoc=gl.getUniformLocation(prog,"time");
-const crtLoc=gl.getUniformLocation(prog,"crt");
-
 /* loop */
-function loop(t){
+function loop(){
 
-draw();
+    draw();
 
-gl.viewport(0,0,W,H);
+    gl.viewport(0,0,W,H);
 
-gl.bindTexture(gl.TEXTURE_2D,tex);
-gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
 
-gl.uniform1f(timeLoc,t*0.001);
-gl.uniform1f(crtLoc, crt?1:0);
+    gl.drawArrays(gl.TRIANGLES,0,6);
 
-gl.drawArrays(gl.TRIANGLES,0,6);
-
-requestAnimationFrame(loop);
+    requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 </script>
