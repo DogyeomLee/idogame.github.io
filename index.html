@@ -2,143 +2,141 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>90s Analog CRT Portfolio</title>
+    <title>Extreme CRT Retro TV</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
         
         body { 
-            background: #0a0a0a; /* 완전 어두운 배경 */
+            background: #050505; 
             margin: 0; 
             display: flex; 
+            flex-direction: column;
             justify-content: center; 
             align-items: center; 
             height: 100vh; 
-            width: 100vw;
-            overflow: hidden;
+            color: #ccc;
             font-family: 'Nanum Gothic Coding', monospace;
+        }
+
+        /* TV 본체 외형 */
+        #tv-frame {
+            background: #1a1a1a;
+            padding: 40px 40px 100px 40px; /* 아래쪽 버튼 공간 */
+            border-radius: 60px;
+            box-shadow: inset 0 5px 10px rgba(255,255,255,0.1), 0 50px 100px rgba(0,0,0,0.8);
+            position: relative;
+            border: 4px solid #222;
         }
 
         #wrapper { 
             position: relative; 
-            width: 90vh; /* 4:3 비율 근사치 */
-            height: 67.5vh; 
-            filter: drop-shadow(0 0 20px rgba(255,255,255,0.05));
+            width: 100vh; /* 화면 크기 대폭 확장 */
+            height: 75vh; 
+            background: #000;
+            overflow: hidden;
+            border-radius: 30px;
+            border: 15px solid #111;
         }
 
-        #gameCanvas { display: none; }
-        #shaderCanvas { 
-            width: 100%; 
-            height: 100%; 
-            display: block; 
-            cursor: crosshair;
-        }
-
-        /* 컨트롤 팁 */
-        #tip {
+        /* 하단 물리 버튼 */
+        #controls {
             position: absolute;
-            bottom: -30px;
-            width: 100%;
-            text-align: center;
-            color: #444;
-            font-size: 12px;
-            letter-spacing: 1px;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 30px;
+            align-items: center;
         }
+
+        .btn {
+            background: #333;
+            border: 2px solid #000;
+            color: #777;
+            padding: 10px 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 4px 0 #000;
+            transition: 0.1s;
+        }
+
+        .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+        .btn.power-on { color: #f00; text-shadow: 0 0 5px #f00; border-color: #500; }
+
+        #shaderCanvas { width: 100%; height: 100%; display: block; }
+        #gameCanvas { display: none; }
     </style>
 </head>
 <body>
 
-<div id="wrapper">
-    <canvas id="shaderCanvas"></canvas>
-    <canvas id="gameCanvas"></canvas>
-    <div id="tip">ANALOG SIGNAL ACTIVE | 60Hz | CLICK SCREEN TO NAVIGATE</div>
+<div id="tv-frame">
+    <div id="wrapper">
+        <canvas id="shaderCanvas"></canvas>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    
+    <div id="controls">
+        <button class="btn power-on" id="pwrBtn" onclick="toggleCRT()">POWER: ON</button>
+        <button class="btn" onclick="nextPage()">CH ▲</button>
+        <button class="btn" onclick="location.reload()">RESET</button>
+    </div>
 </div>
 
 <script>
-/** 1. 데이터 및 인터랙션 **/
 let currentView = 'HOME';
-let mousePos = { x: 0, y: 0 };
-let audioCtx = null;
-let gainNode = null;
+let isCrtOn = true;
+let audioCtx = null, gainNode = null;
 
-const projects = [
-    { name: "창세기전 스타일 RPG", info: "90년대 감성 턴제 전투 구현" },
-    { name: "도트 액션 게임", info: "2D 스프라이트 애니메이션 최적화" },
-    { name: "3D 던전 탐험", info: "초기 PS1 스타일의 로우폴리 렌더링" }
-];
-
-const sCanvas = document.getElementById("shaderCanvas");
-sCanvas.addEventListener('mousemove', (e) => {
-    const rect = sCanvas.getBoundingClientRect();
-    mousePos.x = (e.clientX - rect.left) * (800 / rect.width);
-    mousePos.y = (e.clientY - rect.top) * (600 / rect.height);
-});
-
-sCanvas.addEventListener('click', () => {
+// 페이지 전환
+function nextPage() {
+    const views = ['HOME', 'PROJECTS', 'SKILLS'];
+    const idx = views.indexOf(currentView);
+    currentView = views[(idx + 1) % views.length];
     if(!audioCtx) initAudio();
-    // 메뉴 버튼 클릭 판정
-    if (mousePos.x > 60 && mousePos.x < 240) {
-        if (mousePos.y > 100 && mousePos.y < 145) currentView = 'HOME';
-        if (mousePos.y > 160 && mousePos.y < 205) currentView = 'PROJECTS';
-        if (mousePos.y > 220 && mousePos.y < 265) currentView = 'SKILLS';
-    }
-});
+}
 
-/** 2. 2D 캔버스 드로잉 (90년대 TV 스타일) **/
+function toggleCRT() {
+    isCrtOn = !isCrtOn;
+    const btn = document.getElementById('pwrBtn');
+    btn.textContent = `POWER: ${isCrtOn ? 'ON' : 'OFF'}`;
+    btn.classList.toggle('power-on', isCrtOn);
+    if(gainNode) gainNode.gain.setTargetAtTime(isCrtOn ? 0.02 : 0, 0, 0.1);
+}
+
+/** 캔버스 그리기 **/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 800; canvas.height = 600;
 
 function drawUI() {
-    // 짙은 회색빛이 도는 브라운관 블랙
-    ctx.fillStyle = "#121212"; 
+    ctx.fillStyle = "#0a0a0f"; 
     ctx.fillRect(0, 0, 800, 600);
     
-    // 메뉴 바 (투박한 회색 창 스타일)
-    ctx.strokeStyle = "#444";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(50, 40, 200, 520);
-    
-    const drawMenu = (label, y, id) => {
-        const hover = (mousePos.x > 60 && mousePos.x < 240 && mousePos.y > y && mousePos.y < y + 45);
-        const active = (currentView === id);
-        
-        ctx.fillStyle = active ? "#fff" : (hover ? "#888" : "#222");
-        ctx.fillRect(65, y, 170, 40);
-        ctx.fillStyle = active ? "#000" : "#fff";
-        ctx.font = "bold 18px 'Nanum Gothic Coding'";
-        ctx.textAlign = "center";
-        ctx.fillText(label, 150, y + 26);
-    };
+    // 화면 노이즈 텍스트 효과
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.font = "bold 24px 'Nanum Gothic Coding'";
+    ctx.fillText(isCrtOn ? "AV-1" : "HD-DIRECT", 40, 50);
 
-    drawMenu("메인 화면", 100, 'HOME');
-    drawMenu("프로젝트", 160, 'PROJECTS');
-    drawMenu("보유 기술", 220, 'SKILLS');
-
-    // 본문 영역
-    ctx.textAlign = "left";
-    ctx.fillStyle = "#eee";
     if (currentView === 'HOME') {
-        ctx.font = "bold 40px 'Nanum Gothic Coding'";
-        ctx.fillText("신입 개발자 포트폴리오", 310, 150);
+        ctx.textAlign = "center";
+        ctx.font = "bold 50px 'Nanum Gothic Coding'";
+        ctx.fillText("포트폴리오 수신 중...", 400, 300);
         ctx.font = "20px 'Nanum Gothic Coding'";
-        ctx.fillText("이름: 홍길동 (HONG GILDONG)", 310, 220);
-        ctx.fillText("상태: 접속 중...", 310, 260);
-        ctx.fillRect(310, 300, 400, 2);
+        ctx.fillText("현재 채널: 07 (DEV_CHANNEL)", 400, 360);
     } else if (currentView === 'PROJECTS') {
-        ctx.font = "bold 30px 'Nanum Gothic Coding'";
-        ctx.fillText("< 프로젝트 기록 >", 310, 100);
-        projects.forEach((p, i) => {
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 22px 'Nanum Gothic Coding'";
-            ctx.fillText(`${i+1}. ${p.name}`, 310, 180 + i*110);
-            ctx.fillStyle = "#bbb";
-            ctx.font = "18px 'Nanum Gothic Coding'";
-            ctx.fillText(`   ${p.info}`, 310, 215 + i*110);
-        });
+        ctx.textAlign = "left";
+        ctx.font = "bold 40px 'Nanum Gothic Coding'";
+        ctx.fillText("[ 프로젝트 리스트 ]", 100, 150);
+        ctx.font = "25px 'Nanum Gothic Coding'";
+        ctx.fillText("1. 레트로 쉐이더 엔진", 120, 250);
+        ctx.fillText("2. 아날로그 통신 복원 프로젝트", 120, 320);
     }
 }
 
-/** 3. 리얼 아날로그 WebGL 쉐이더 **/
+/** 초강력 CRT 쉐이더 **/
+const sCanvas = document.getElementById("shaderCanvas");
 const gl = sCanvas.getContext("webgl");
 
 const vertexSource = `
@@ -156,54 +154,59 @@ const fragmentSource = `
     varying vec2 vTexCoord;
     uniform sampler2D uTexture;
     uniform float uTime;
+    uniform bool uEnabled;
 
-    // 아날로그 왜곡 함수
-    vec2 barrelDistortion(vec2 uv, float k) {
-        vec2 centered = uv - 0.5;
-        float r2 = centered.x * centered.x + centered.y * centered.y;
-        return uv + centered * k * r2;
+    // 강력한 브라운관 왜곡
+    vec2 curve(vec2 uv) {
+        if(!uEnabled) return uv;
+        uv = (uv - 0.5) * 2.0;
+        uv *= 1.1;	
+        uv.x *= 1.0 + pow((abs(uv.y) / 3.0), 2.0);
+        uv.y *= 1.0 + pow((abs(uv.x) / 2.5), 2.0);
+        return (uv / 2.0) + 0.5;
     }
 
     void main() {
-        // 1. 화면 왜곡 (둥근 테두리)
-        vec2 uv = barrelDistortion(vTexCoord, 0.15);
-        
+        vec2 uv = curve(vTexCoord);
         if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
         }
 
-        // 2. 미세한 화면 떨림
-        float flicker = sin(uTime * 100.0) * 0.005;
+        if(!uEnabled) {
+            gl_FragColor = texture2D(uTexture, uv); return;
+        }
+
+        // V-Sync 흔들림 (미세한 떨림)
+        float jitter = sin(uTime * 130.0) * 0.001;
         
-        // 3. RGB 채널 분리 (색수차)
-        vec3 color;
-        color.r = texture2D(uTexture, uv + vec2(0.001, flicker)).r;
-        color.g = texture2D(uTexture, uv).g;
-        color.b = texture2D(uTexture, uv - vec2(0.001, 0.0)).b;
+        // RGB 분리 (강화)
+        vec3 col;
+        col.r = texture2D(uTexture, uv + vec2(0.003, jitter)).r;
+        col.g = texture2D(uTexture, uv + vec2(0.0, 0.0)).g;
+        col.b = texture2D(uTexture, uv + vec2(-0.003, -jitter)).b;
 
-        // 4. 주사선 & 망점 효과
-        float scanline = sin(uv.y * 500.0) * 0.1;
-        float grille = sin(uv.x * 800.0) * 0.05;
-        color -= scanline;
-        color -= grille;
+        // 주사선 + 격자망 (Aperture Grille)
+        float scanline = sin(uv.y * 600.0 + uTime * 5.0) * 0.15;
+        float mask = sin(uv.x * 1000.0) * 0.1;
+        col -= scanline;
+        col -= mask;
 
-        // 5. 밝은 부분 번짐 (Bloom 효과 모사)
-        vec3 glow = texture2D(uTexture, uv).rgb * 0.2;
-        color += glow;
+        // 화면 밝기 플리커
+        col *= 0.95 + 0.05 * sin(110.0 * uTime);
 
-        // 6. 지글거리는 노이즈
-        float noise = (fract(sin(dot(uv + uTime, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.12;
-        color += noise;
+        // 노이즈
+        float n = (fract(sin(dot(uv, vec2(12.9898, 78.233) * uTime)) * 43758.5453) - 0.5) * 0.2;
+        col += n;
 
-        // 7. 가장자리 어두움 (Vignette)
-        float vignette = 1.0 - length(uv - 0.5) * 1.2;
-        color *= vignette;
+        // 비네팅 (가장자리 어둡게)
+        float vig = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+        col *= pow(25.0 * vig, 0.4);
 
-        gl_FragColor = vec4(color, 1.0);
+        gl_FragColor = vec4(col, 1.0);
     }
 `;
 
-// WebGL 초기화 (이전과 동일)
+// WebGL 초기화 코드
 const program = gl.createProgram();
 function createShader(gl, type, source) {
     const s = gl.createShader(type);
@@ -212,15 +215,14 @@ function createShader(gl, type, source) {
 gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vertexSource));
 gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fragmentSource));
 gl.linkProgram(program); gl.useProgram(program);
-
 const buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
 const posLoc = gl.getAttribLocation(program, "position");
 gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
 const texture = gl.createTexture();
 const uTimeLoc = gl.getUniformLocation(program, "uTime");
+const uEnabledLoc = gl.getUniformLocation(program, "uEnabled");
 
 function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -229,7 +231,7 @@ function initAudio() {
     for (let i = 0; i < out.length; i++) out[i] = Math.random() * 2 - 1;
     const noise = audioCtx.createBufferSource();
     noise.buffer = noiseBuffer; noise.loop = true;
-    gainNode = audioCtx.createGain(); gainNode.gain.value = 0.01;
+    gainNode = audioCtx.createGain(); gainNode.gain.value = 0.02;
     noise.connect(gainNode); gainNode.connect(audioCtx.destination);
     noise.start();
 }
@@ -241,9 +243,8 @@ function render() {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.uniform1f(uTimeLoc, performance.now() / 1000);
+    gl.uniform1i(uEnabledLoc, isCrtOn ? 1 : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(render);
 }
