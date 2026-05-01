@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Glass CRT Panel PRO</title>
+<title>Glass CRT Balance</title>
 
 <style>
 body{
@@ -38,7 +38,7 @@ canvas{
     height:100%;
 }
 
-/* 🪟 기본 유리 */
+/* 유리 */
 #glass{
     position:absolute;
     width:100%;
@@ -54,7 +54,7 @@ canvas{
         );
 }
 
-/* ✨ 하이라이트 */
+/* 하이라이트 */
 #highlight{
     position:absolute;
     width:120%;
@@ -65,12 +65,12 @@ canvas{
 
     background:
         radial-gradient(circle at 30% 20%,
-            rgba(255,255,255,0.25),
-            rgba(255,255,255,0.05) 30%,
+            rgba(255,255,255,0.2),
+            rgba(255,255,255,0.04) 30%,
             transparent 60%);
 }
 
-/* 🔥 프레넬 효과 (가장자리 반사) */
+/* 프레넬 */
 #fresnel{
     position:absolute;
     width:100%;
@@ -79,9 +79,9 @@ canvas{
 
     background:
         radial-gradient(circle,
-            transparent 40%,
-            rgba(255,255,255,0.08) 70%,
-            rgba(255,255,255,0.15) 100%);
+            transparent 45%,
+            rgba(255,255,255,0.05) 75%,
+            rgba(255,255,255,0.1) 100%);
 
     mix-blend-mode:screen;
 }
@@ -106,13 +106,13 @@ canvas{
 <div id="wrap">
 <div id="screen">
 
-    <canvas id="out"></canvas>
-    <canvas id="buf" style="display:none;"></canvas>
+<canvas id="out"></canvas>
+<canvas id="buf" style="display:none;"></canvas>
 
-    <div id="glass"></div>
-    <div id="highlight"></div>
-    <div id="fresnel"></div>
-    <div id="edge"></div>
+<div id="glass"></div>
+<div id="highlight"></div>
+<div id="fresnel"></div>
+<div id="edge"></div>
 
 </div>
 </div>
@@ -133,14 +133,14 @@ function draw(){
     ctx.fillStyle="#0d111a";
     ctx.fillRect(0,0,W,H);
 
-    ctx.fillStyle="#ffffff";
+    ctx.fillStyle="#fff";
     ctx.textAlign="center";
-    ctx.font="bold 72px sans-serif";
-    ctx.fillText("GLASS CRT",400,260);
+    ctx.font="bold 70px sans-serif";
+    ctx.fillText("CRT PANEL",400,260);
 
     ctx.font="18px sans-serif";
     ctx.fillStyle="#aaa";
-    ctx.fillText("Real Glass Simulation",400,320);
+    ctx.fillText("Glass + CRT Balance",400,320);
 }
 
 /* WebGL */
@@ -152,9 +152,9 @@ gl.shaderSource(vs,`
 attribute vec2 p;
 varying vec2 v;
 void main(){
-    v=(p+1.)/2.;
-    v.y=1.-v.y;
-    gl_Position=vec4(p,0,1);
+v=(p+1.)/2.;
+v.y=1.-v.y;
+gl_Position=vec4(p,0,1);
 }`);
 gl.compileShader(vs);
 
@@ -165,11 +165,11 @@ precision mediump float;
 varying vec2 v;
 uniform sampler2D t;
 
-/* 약한 곡면 */
+/* 약하지만 존재하는 곡면 */
 vec2 distort(vec2 uv){
     uv = uv * 2.0 - 1.0;
     float d = dot(uv,uv);
-    uv *= 1.0 + d * 0.06;
+    uv *= 1.0 + d * 0.1;
     return uv * 0.5 + 0.5;
 }
 
@@ -182,25 +182,30 @@ if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
     return;
 }
 
-vec3 col = texture2D(t,u).rgb;
+/* 🔴 아주 약한 RGB 분리 */
+float r = texture2D(t, u + vec2(0.0012,0)).r;
+float g = texture2D(t, u).g;
+float b = texture2D(t, u - vec2(0.0012,0)).b;
 
-/* 💡 내부 유리 확산 (soft glow) */
-vec3 glow =
-    texture2D(t,u+vec2(0.001,0)).rgb +
-    texture2D(t,u-vec2(0.001,0)).rgb +
-    texture2D(t,u+vec2(0,0.001)).rgb +
-    texture2D(t,u-vec2(0,0.001)).rgb;
+vec3 col = vec3(r,g,b);
 
-glow *= 0.25;
+/* 💡 은은한 Bloom */
+vec3 bloom =
+    texture2D(t,u+vec2(0.0015,0)).rgb +
+    texture2D(t,u-vec2(0.0015,0)).rgb +
+    texture2D(t,u+vec2(0,0.0015)).rgb +
+    texture2D(t,u-vec2(0,0.0015)).rgb;
+
+bloom *= 0.25;
 
 float bright = max(max(col.r,col.g),col.b);
-col += glow * bright * 0.2;
+col += bloom * bright * 0.25;
 
-/* 약한 스캔라인 */
-col -= sin(u.y*500.0) * 0.025;
+/* 📺 스캔라인 (조금 더 보이게) */
+col -= sin(u.y*600.0) * 0.05;
 
 /* 비네팅 */
-col *= 1.0 - length(v-0.5)*0.5;
+col *= 1.0 - length(v-0.5)*0.6;
 
 gl_FragColor=vec4(col,1.0);
 }`);
@@ -235,15 +240,15 @@ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 /* loop */
 function loop(){
 
-    draw();
+draw();
 
-    gl.viewport(0,0,W,H);
+gl.viewport(0,0,W,H);
 
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
 
-    gl.drawArrays(gl.TRIANGLES,0,6);
+gl.drawArrays(gl.TRIANGLES,0,6);
 
-    requestAnimationFrame(loop);
+requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 </script>
