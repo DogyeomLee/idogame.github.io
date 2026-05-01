@@ -1,137 +1,28 @@
-Skip to content
-DogyeomLee
-idogame
-Repository navigation
-Code
-Issues
-Pull requests
-Actions
-Projects
-Wiki
-Security and quality
-Insights
-Settings
-Files
-Go to file
-t
-T
-.github
-README.md
-index.html
-style.css
-idogame
-/
-index.html
-in
-main
-
-Edit
-
-Preview
-Indent mode
-
-Spaces
-Indent size
-
-4
-Line wrap mode
-
-No wrap
-Editing index.html file contents
-  1
-  2
-  3
-  4
-  5
-  6
-  7
-  8
-  9
- 10
- 11
- 12
- 13
- 14
- 15
- 16
- 17
- 18
- 19
- 20
- 21
- 22
- 23
- 24
- 25
- 26
- 27
- 28
- 29
- 30
- 31
- 32
- 33
- 34
- 35
- 36
- 37
- 38
- 39
- 40
- 41
- 42
- 43
- 44
- 45
- 46
- 47
- 48
- 49
- 50
- 51
- 52
- 53
- 54
- 55
- 56
- 57
- 58
- 59
- 60
- 61
- 62
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Classic 4:3 CRT Portfolio</title>
+    <title>Perfect Ratio CRT Portfolio</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@700&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
         body { 
-            background: #08080a; 
+            background: #050505; 
             margin: 0; 
             overflow: hidden; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
             height: 100vh; 
-            width: 100vw;
         }
-
-        /* 4:3 비율 고정 컨테이너 */
+        /* 4:3 비율 강제 고정 및 깔끔한 테두리 */
         #container { 
             position: relative; 
-            width: 80vh; /* 높이 기준 4:3 (80:60) */
+            width: 80vh; /* 높이에 맞춘 너비 설정 (4:3) */
             height: 60vh; 
+            box-shadow: 0 0 100px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05);
             background: #000;
-            border: 15px solid #1a1a1a; /* 모니터 베젤 느낌 */
-            border-radius: 40px;
-            box-shadow: 0 0 100px rgba(0,0,0,0.8), inset 0 0 50px rgba(255,255,255,0.05);
-            overflow: hidden;
         }
-
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 20px; }
     </style>
 </head>
 <body>
@@ -145,14 +36,12 @@ Editing index.html file contents
 const outCanvas = document.getElementById("outCanvas");
 const bufferCanvas = document.getElementById("bufferCanvas");
 const bCtx = bufferCanvas.getContext("2d");
-
-// 4:3 표준 해상도 설정
-bufferCanvas.width = 800; 
+bufferCanvas.width = 800;
 bufferCanvas.height = 600;
 
-let frame = 0;
 let mouseX = 0, mouseY = 0;
-const menuItems = ["START ADVENTURE", "PROJECT FILES", "USER ABILITY", "EXIT GAME"];
+let currentMode = "TITLE";
+const menuItems = ["GAME START", "PROJECT DATA", "ABILITY", "SYSTEM OFF"];
 
 outCanvas.addEventListener('mousemove', (e) => {
     const rect = outCanvas.getBoundingClientRect();
@@ -160,6 +49,141 @@ outCanvas.addEventListener('mousemove', (e) => {
     mouseY = (e.clientY - rect.top) * (600 / rect.height);
 });
 
+outCanvas.addEventListener('click', () => {
+    menuItems.forEach((item, i) => {
+        const y = 350 + i * 55;
+        if (mouseX > 250 && mouseX < 550 && mouseY > y - 30 && mouseY < y + 20) {
+            currentMode = item;
+        }
+    });
+});
+
 function drawBuffer() {
-    frame++;
-Use Control + Shift + m to toggle the tab key moving focus. Alternatively, use esc then tab to move to the next interactive element on the page.
+    bCtx.fillStyle = "#0c0c16";
+    bCtx.fillRect(0, 0, 800, 600);
+
+    if (currentMode === "TITLE") {
+        // 게임 타이틀 느낌의 텍스트 배치
+        bCtx.textAlign = "center";
+        bCtx.fillStyle = "#fff";
+        bCtx.font = "bold 70px 'Nanum Gothic Coding'";
+        bCtx.fillText("MISSION: POSS", 400, 180);
+        
+        bCtx.font = "14px 'Nanum Gothic Coding'";
+        bCtx.fillStyle = "#555588";
+        bCtx.fillText("INSERT COIN OR SELECT MENU", 400, 230);
+
+        menuItems.forEach((item, i) => {
+            const y = 350 + i * 55;
+            const isHover = mouseX > 250 && mouseX < 550 && mouseY > y - 30 && mouseY < y + 20;
+            
+            if (isHover) {
+                bCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                bCtx.fillRect(250, y - 35, 300, 45);
+                bCtx.fillStyle = "#000";
+                bCtx.font = "bold 22px 'Nanum Gothic Coding'";
+                bCtx.fillText("> " + item, 400, y - 3);
+            } else {
+                bCtx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                bCtx.lineWidth = 1;
+                bCtx.strokeRect(250, y - 35, 300, 45);
+                bCtx.fillStyle = "#888";
+                bCtx.font = "22px 'Nanum Gothic Coding'";
+                bCtx.fillText(item, 400, y - 3);
+            }
+        });
+    } else {
+        bCtx.fillStyle = "#fff";
+        bCtx.font = "30px 'Nanum Gothic Coding'";
+        bCtx.textAlign = "center";
+        bCtx.fillText("LOADING [" + currentMode + "]...", 400, 300);
+        bCtx.font = "16px 'Nanum Gothic Coding'";
+        bCtx.fillText("CLICK TO RETURN TO TITLE", 400, 350);
+        outCanvas.onclick = () => { currentMode = "TITLE"; outCanvas.onclick = null; };
+    }
+}
+
+const gl = outCanvas.getContext("webgl");
+const vShader = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vShader, `attribute vec2 p;varying vec2 v;void main(){v=(p+1.)/2.;v.y=1.-v.y;gl_Position=vec4(p,0,1);}`);
+gl.compileShader(vShader);
+
+const fShader = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fShader, `
+    precision mediump float;
+    varying vec2 v;
+    uniform sampler2D t;
+    uniform float time;
+
+    // 왜곡 수식 최적화 (중앙은 평평하고 끝으로 갈수록 휘게)
+    vec2 scanDistort(vec2 uv) {
+        uv = uv * 2.0 - 1.0;
+        vec2 offset = abs(uv.yx) / vec2(6.0, 4.0); // 가로세로 왜곡 비율 분리
+        uv = uv + uv * offset * offset;
+        return uv * 0.5 + 0.5;
+    }
+
+    void main() {
+        vec2 u = scanDistort(v);
+        
+        // 화면 밖 영역 처리 (검정색)
+        if(u.x < 0.0 || u.x > 1.0 || u.y < 0.0 || u.y > 1.0) {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+
+        // RGB 도트 배열 느낌 (Aperture Grille)
+        vec3 c;
+        float r = texture2D(t, u + vec2(0.0015, 0.0)).r;
+        float g = texture2D(t, u).g;
+        float b = texture2D(t, u - vec2(0.0015, 0.0)).b;
+        
+        // 주사선 효과 강도 조절
+        float scanline = sin(u.y * 800.0) * 0.08;
+        c = vec3(r, g, b) - scanline;
+        
+        // 아주 미세한 지지직거림
+        float noise = fract(sin(dot(u + time, vec2(12.9898, 78.233))) * 43758.5453) * 0.05;
+        c += noise;
+
+        // 비네팅 (가장자리 어둡게)
+        float vignette = 1.0 - length(v - 0.5) * 1.3;
+        gl_FragColor = vec4(c * vignette, 1.0);
+    }
+`);
+gl.compileShader(fShader);
+
+const prog = gl.createProgram();
+gl.attachShader(prog, vShader); gl.attachShader(prog, fShader);
+gl.linkProgram(prog); gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
+const pLoc = gl.getAttribLocation(prog, "p");
+gl.enableVertexAttribArray(pLoc); gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0);
+
+const tex = gl.createTexture();
+const tLoc = gl.getUniformLocation(prog, "time");
+
+function loop(t) {
+    outCanvas.width = outCanvas.clientWidth;
+    outCanvas.height = outCanvas.clientHeight;
+    gl.viewport(0, 0, outCanvas.width, outCanvas.height);
+
+    drawBuffer();
+
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bufferCanvas);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    
+    gl.uniform1f(tLoc, t/1000);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
