@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Mega Game Title Portfolio</title>
+    <title>Classic 4:3 CRT Portfolio</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@700&display=swap');
         
         body { 
-            background: #020205; 
+            background: #08080a; 
             margin: 0; 
             overflow: hidden; 
             display: flex; 
@@ -17,15 +17,16 @@
             width: 100vw;
         }
 
-        /* 화면 크기를 브라우저 가로에 꽉 맞춤 */
+        /* 4:3 비율 고정 컨테이너 */
         #container { 
             position: relative; 
-            width: 95vw; 
-            height: 53.43vw; /* 16:9 비율 유지하면서 최대 크기 */
-            max-height: 95vh;
-            max-width: 170vh; 
+            width: 80vh; /* 높이 기준 4:3 (80:60) */
+            height: 60vh; 
             background: #000;
-            box-shadow: 0 0 50px #000;
+            border: 15px solid #1a1a1a; /* 모니터 베젤 느낌 */
+            border-radius: 40px;
+            box-shadow: 0 0 100px rgba(0,0,0,0.8), inset 0 0 50px rgba(255,255,255,0.05);
+            overflow: hidden;
         }
 
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
@@ -43,95 +44,80 @@ const outCanvas = document.getElementById("outCanvas");
 const bufferCanvas = document.getElementById("bufferCanvas");
 const bCtx = bufferCanvas.getContext("2d");
 
-// 버퍼 해상도 (와이드 해상도)
-bufferCanvas.width = 1280; 
-bufferCanvas.height = 720;
+// 4:3 표준 해상도 설정
+bufferCanvas.width = 800; 
+bufferCanvas.height = 600;
 
 let frame = 0;
 let mouseX = 0, mouseY = 0;
-const menuItems = ["NEW ADVENTURE", "MISSION ARCHIVE", "SPEC_SHEET", "POWER OFF"];
+const menuItems = ["START ADVENTURE", "PROJECT FILES", "USER ABILITY", "EXIT GAME"];
 
 outCanvas.addEventListener('mousemove', (e) => {
     const rect = outCanvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left) * (1280 / rect.width);
-    mouseY = (e.clientY - rect.top) * (720 / rect.height);
+    mouseX = (e.clientX - rect.left) * (800 / rect.width);
+    mouseY = (e.clientY - rect.top) * (600 / rect.height);
 });
 
 function drawBuffer() {
     frame++;
     
-    // 1. 배경: 다크 사이버 펑크 그라데이션
-    const bgGrad = bCtx.createRadialGradient(640, 360, 100, 640, 360, 800);
-    bgGrad.addColorStop(0, "#1a0b2e");
-    bgGrad.addColorStop(1, "#050508");
-    bCtx.fillStyle = bgGrad;
-    bCtx.fillRect(0, 0, 1280, 720);
+    // 1. 딥 블루 레트로 배경
+    bCtx.fillStyle = "#050515";
+    bCtx.fillRect(0, 0, 800, 600);
 
-    // 2. 가로 그리드 레이저 효과 (복고풍 바닥)
-    bCtx.strokeStyle = "rgba(0, 255, 255, 0.15)";
-    bCtx.lineWidth = 2;
-    for(let i=0; i<20; i++) {
-        let y = 400 + (i * 20 + (frame % 20));
-        bCtx.beginPath();
-        bCtx.moveTo(0, y);
-        bCtx.lineTo(1280, y);
-        bCtx.stroke();
+    // 2. 배경 스캔 라인 이펙트 (움직이는 그리드)
+    bCtx.strokeStyle = "rgba(0, 255, 255, 0.05)";
+    for(let i=0; i<40; i++) {
+        let x = (i * 40 + frame * 0.5) % 800;
+        bCtx.beginPath(); bCtx.moveTo(x, 0); bCtx.lineTo(x, 600); bCtx.stroke();
     }
 
-    // 3. 메가 게임 타이틀 (입체감 있는 로고 스타일)
-    const titleY = 220 + Math.sin(frame * 0.04) * 15;
+    // 3. 게임 메인 로고 (압도적 크기)
     bCtx.textAlign = "center";
+    const titleY = 180 + Math.sin(frame * 0.05) * 8;
     
-    // 로고 그림자/광원
-    bCtx.shadowColor = "#ff00ff";
-    bCtx.shadowBlur = 30;
+    bCtx.shadowColor = "#ff0055";
+    bCtx.shadowBlur = 20;
     
-    // 입체 외곽선
-    bCtx.font = "italic 130px 'Black Han Sans'";
-    bCtx.strokeStyle = "#fff";
-    bCtx.lineWidth = 15;
-    bCtx.strokeText("PORTFOLIO 2026", 640, titleY);
+    // 로고 텍스트 (입체)
+    bCtx.font = "italic 90px 'Black Han Sans'";
+    bCtx.fillStyle = "#fff";
+    bCtx.fillText("DEV QUEST", 400, titleY);
     
-    // 메인 그라데이션 텍스트
-    const txtGrad = bCtx.createLinearGradient(0, titleY - 80, 0, titleY + 20);
-    txtGrad.addColorStop(0, "#00ffff");
-    txtGrad.addColorStop(0.5, "#ffffff");
-    txtGrad.addColorStop(1, "#0055ff");
-    bCtx.fillStyle = txtGrad;
-    bCtx.fillText("PORTFOLIO 2026", 640, titleY);
-    
-    bCtx.shadowBlur = 0; // 그림자 초기화
+    bCtx.shadowBlur = 0;
+    bCtx.font = "bold 20px 'Nanum Gothic Coding'";
+    bCtx.fillStyle = (frame % 60 < 30) ? "#00ffff" : "#fff";
+    bCtx.fillText("--- 2026 VERSION ---", 400, 230);
 
-    // 4. 메뉴 구성
+    // 4. 메뉴 버튼 (중앙 정렬)
     menuItems.forEach((item, i) => {
-        const xPos = 640;
-        const yPos = 450 + (i * 60);
-        const isHover = mouseX > 440 && mouseX < 840 && mouseY > yPos - 40 && mouseY < yPos + 15;
+        const yPos = 350 + (i * 55);
+        const isHover = mouseX > 250 && mouseX < 550 && mouseY > yPos - 35 && mouseY < yPos + 15;
 
         if (isHover) {
-            bCtx.fillStyle = "rgba(255, 255, 255, 0.2)";
-            bCtx.fillRect(440, yPos - 45, 400, 60);
+            // 선택된 버튼 디자인
+            bCtx.fillStyle = "#fff";
+            bCtx.fillRect(240, yPos - 38, 320, 50);
             
-            bCtx.fillStyle = "#ffff00";
-            bCtx.font = "700 35px 'Nanum Gothic Coding'";
-            bCtx.fillText("> " + item + " <", xPos, yPos);
-            
-            // 글리치 효과 살짝 추가
-            if(frame % 5 === 0) {
-                bCtx.fillStyle = "#ff00ff";
-                bCtx.fillText("> " + item + " <", xPos + 5, yPos);
-            }
+            bCtx.fillStyle = "#000";
+            bCtx.font = "700 24px 'Nanum Gothic Coding'";
+            bCtx.fillText("▶ " + item, 400, yPos);
         } else {
-            bCtx.fillStyle = "#ffffff";
-            bCtx.font = "700 30px 'Nanum Gothic Coding'";
-            bCtx.fillText(item, xPos, yPos);
+            // 일반 버튼 디자인
+            bCtx.strokeStyle = "rgba(255,255,255,0.5)";
+            bCtx.lineWidth = 2;
+            bCtx.strokeRect(240, yPos - 38, 320, 50);
+            
+            bCtx.fillStyle = "#fff";
+            bCtx.font = "700 22px 'Nanum Gothic Coding'";
+            bCtx.fillText(item, 400, yPos);
         }
     });
 
-    // 하단 카피라이트
-    bCtx.font = "14px 'Nanum Gothic Coding'";
-    bCtx.fillStyle = "#444";
-    bCtx.fillText("DIRECTED BY YOUR_NAME / POWERED BY CRT_SHR_ENGINE", 640, 690);
+    // 푸터 정보
+    bCtx.font = "12px 'Nanum Gothic Coding'";
+    bCtx.fillStyle = "#555";
+    bCtx.fillText("CREDITS: YOUR NAME / INSERT COIN TO PLAY", 400, 570);
 }
 
 const gl = outCanvas.getContext("webgl");
@@ -146,38 +132,39 @@ gl.shaderSource(fShader, `
     uniform sampler2D t;
     uniform float time;
 
-    // 극단적인 배럴 왜곡 (화면이 더 튀어나오게)
-    vec2 barrelDistort(vec2 uv) {
+    // 리얼 4:3 브라운관 곡률 공식
+    vec2 crtDistort(vec2 uv) {
         uv = uv * 2.0 - 1.0;
-        // 왜곡 강도를 결정하는 파라미터 (0.2~0.4 사이가 리얼함)
-        float distortion = 0.35; 
-        float r2 = uv.x*uv.x + uv.y*uv.y;
-        uv *= 1.0 + distortion * r2;
-        return uv * 0.5 + 0.5;
+        // 볼록한 정도를 높임 (0.15 -> 0.25)
+        float dist = 0.25; 
+        uv.x *= 1.0 + pow(abs(uv.y) * dist, 2.0);
+        uv.y *= 1.0 + pow(abs(uv.x) * dist, 2.0);
+        return uv * 0.48 + 0.5; // 약간 스케일 다운해서 테두리 확보
     }
 
     void main() {
-        vec2 u = barrelDistort(v);
+        vec2 u = crtDistort(v);
         
+        // 화면 테두리 밖은 검정
         if(u.x < 0.0 || u.x > 1.0 || u.y < 0.0 || u.y > 1.0) {
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
         }
 
-        // 색수차 및 선명도
         vec3 col;
+        // RGB 채널 분리 (색수차)
         col.r = texture2D(t, u + vec2(0.003, 0.0)).r;
         col.g = texture2D(t, u).g;
         col.b = texture2D(t, u - vec2(0.003, 0.0)).b;
 
-        // 굵고 선명한 스캔라인
-        float scanline = sin(u.y * 500.0) * 0.12;
+        // 주사선 강하게
+        float scanline = sin(u.y * 600.0) * 0.15;
         col -= scanline;
 
-        // 화면 미세 떨림
-        col *= 0.96 + 0.04 * sin(110.0 * time);
+        // 아날로그 지지직 (Flicker)
+        col *= 0.95 + 0.05 * sin(120.0 * time);
 
-        // 강력한 비네팅 (구석을 아주 어둡게)
-        float vig = pow(120.0 * u.x * u.y * (1.0 - u.x) * (1.0 - u.y), 0.7);
+        // 비네팅 (구석 보정)
+        float vig = pow(150.0 * u.x * u.y * (1.0 - u.x) * (1.0 - u.y), 0.8);
         gl_FragColor = vec4(col * vig, 1.0);
     }
 `);
