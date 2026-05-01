@@ -2,27 +2,81 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Pure CRT</title>
+<title>CRT 4:3 Glass</title>
 
 <style>
 body{
     margin:0;
     background:#000;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* 🔥 4:3 비율 고정 */
+#wrap{
+    aspect-ratio:4/3;
+    height:95vh;
+}
+
+/* 화면 */
+#screen{
+    position:relative;
+    width:100%;
+    height:100%;
+    background:black;
     overflow:hidden;
 }
 
+/* 캔버스 */
 canvas{
-    width:100vw;
-    height:100vh;
-    display:block;
+    position:absolute;
+    width:100%;
+    height:100%;
+}
+
+/* 🪟 유리 반사 (은은하게) */
+#glass{
+    position:absolute;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+
+    background:
+        linear-gradient(120deg,
+            rgba(255,255,255,0.12),
+            rgba(255,255,255,0.03) 30%,
+            transparent 60%
+        );
+}
+
+/* 가장자리 어둡게 */
+#edge{
+    position:absolute;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+
+    box-shadow:
+        inset 0 0 80px rgba(0,0,0,0.8);
 }
 </style>
 </head>
 
 <body>
 
+<div id="wrap">
+<div id="screen">
+
 <canvas id="out"></canvas>
 <canvas id="buf" style="display:none;"></canvas>
+
+<div id="glass"></div>
+<div id="edge"></div>
+
+</div>
+</div>
 
 <script>
 const W=800,H=600;
@@ -42,11 +96,11 @@ function draw(){
 
     ctx.fillStyle="#fff";
     ctx.textAlign="center";
-    ctx.font="bold 80px monospace";
-    ctx.fillText("CRT",400,260);
+    ctx.font="bold 70px monospace";
+    ctx.fillText("CRT 4:3",400,260);
 
-    ctx.font="20px monospace";
-    ctx.fillText("REAL EFFECT ACTIVE",400,330);
+    ctx.font="18px monospace";
+    ctx.fillText("GLASS ENABLED",400,320);
 }
 
 /* WebGL */
@@ -72,11 +126,11 @@ varying vec2 v;
 uniform sampler2D t;
 uniform float time;
 
-/* 강한 CRT 곡면 */
+/* 적당한 곡면 */
 vec2 distort(vec2 uv){
     uv = uv*2.0-1.0;
     float d = dot(uv,uv);
-    uv *= 1.0 + d * 0.25;
+    uv *= 1.0 + d * 0.15;
     return uv*0.5+0.5;
 }
 
@@ -88,39 +142,38 @@ void main(){
 
 vec2 u = distort(v);
 
-/* 바깥 검정 */
 if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
     gl_FragColor=vec4(0,0,0,1);
     return;
 }
 
-/* 🔴 RGB 분리 강하게 */
-float r = texture2D(t, u + vec2(0.003,0)).r;
+/* RGB 분리 */
+float r = texture2D(t, u + vec2(0.002,0)).r;
 float g = texture2D(t, u).g;
-float b = texture2D(t, u - vec2(0.003,0)).b;
+float b = texture2D(t, u - vec2(0.002,0)).b;
 
 vec3 col = vec3(r,g,b);
 
-/* 💡 Bloom */
+/* Bloom */
 vec3 bloom =
-    texture2D(t,u+vec2(0.003,0)).rgb +
-    texture2D(t,u-vec2(0.003,0)).rgb +
-    texture2D(t,u+vec2(0,0.003)).rgb +
-    texture2D(t,u-vec2(0,0.003)).rgb;
+    texture2D(t,u+vec2(0.002,0)).rgb +
+    texture2D(t,u-vec2(0.002,0)).rgb +
+    texture2D(t,u+vec2(0,0.002)).rgb +
+    texture2D(t,u-vec2(0,0.002)).rgb;
 
 bloom *= 0.25;
 
 float bright = max(max(col.r,col.g),col.b);
-col += bloom * bright * 0.5;
+col += bloom * bright * 0.35;
 
-/* 📺 스캔라인 확실하게 */
-col -= sin(u.y*900.0) * 0.15;
+/* 스캔라인 */
+col -= sin(u.y*800.0) * 0.1;
 
-/* 📡 노이즈 살짝 */
-col += rand(u+time)*0.04;
+/* 노이즈 약하게 */
+col += rand(u+time)*0.02;
 
-/* 🔥 비네팅 */
-col *= 1.0 - length(v-0.5)*1.2;
+/* 비네팅 */
+col *= 1.0 - length(v-0.5)*1.0;
 
 gl_FragColor=vec4(col,1.0);
 }`);
@@ -159,7 +212,7 @@ function loop(t){
 
 draw();
 
-gl.viewport(0,0,W,H);
+gl.viewport(0,0,out.width,out.height);
 
 gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
 
