@@ -1,133 +1,268 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>Glass Reflection CRT Portfolio</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Gothic+Coding:wght@700&display=swap');
-        body { background: #000; margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #container { position: relative; width: 100vw; height: 75vw; max-height: 100vh; max-width: 133.33vh; }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-    </style>
+<meta charset="UTF-8">
+<title>Ultimate CRT Glass</title>
+
+<style>
+body{
+    margin:0;
+    background:#05060a;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* 화면 크기 크게 */
+#wrap{
+    aspect-ratio:4/3;
+    width:96vw;
+    max-width:calc(96vh * 4/3);
+    max-height:96vh;
+}
+
+#screen{
+    position:relative;
+    width:100%;
+    height:100%;
+    background:black;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 0 60px black, inset 0 0 40px black;
+}
+
+/* 캔버스 */
+canvas{
+    position:absolute;
+    width:100%;
+    height:100%;
+}
+
+/* 🪟 유리 반사 */
+#glass{
+    position:absolute;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+
+    background:
+        linear-gradient(120deg,
+            rgba(255,255,255,0.18) 0%,
+            rgba(255,255,255,0.05) 20%,
+            rgba(255,255,255,0.0) 40%
+        );
+
+    mix-blend-mode:screen;
+}
+
+/* CRT 곡면 가장자리 */
+#curve{
+    position:absolute;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    box-shadow:
+        inset 0 0 100px rgba(0,0,0,0.9),
+        inset 0 0 200px rgba(0,0,0,0.6);
+}
+</style>
 </head>
+
 <body>
-<div id="container">
-    <canvas id="outCanvas"></canvas>
-    <canvas id="bufferCanvas" style="display:none;"></canvas>
+
+<div id="wrap">
+<div id="screen">
+    <canvas id="out"></canvas>
+    <canvas id="buf" style="display:none;"></canvas>
+
+    <div id="glass"></div>
+    <div id="curve"></div>
+</div>
 </div>
 
 <script>
-const outCanvas = document.getElementById("outCanvas");
-const bufferCanvas = document.getElementById("bufferCanvas");
-const bCtx = bufferCanvas.getContext("2d");
-bufferCanvas.width = 1024; bufferCanvas.height = 768;
+const W=800,H=600;
 
-let frame = 0;
-let mouseX = 0, mouseY = 0;
-const menuItems = ["START ADVENTURE", "PROJECT FILES", "USER ABILITY", "EXIT GAME"];
+const out=document.getElementById("out");
+const buf=document.getElementById("buf");
 
-outCanvas.addEventListener('mousemove', (e) => {
-    const rect = outCanvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left) * (1024 / rect.width);
-    mouseY = (e.clientY - rect.top) * (768 / rect.height);
+out.width=W; out.height=H;
+buf.width=W; buf.height=H;
+
+const ctx=buf.getContext("2d");
+
+let crt=true;
+let power=true;
+
+/* 키 */
+window.addEventListener("keydown",(e)=>{
+    const k=e.key.toLowerCase();
+    if(k==="c") crt=!crt;
+    if(k==="p") power=!power;
 });
 
-function drawBuffer() {
-    frame++;
-    bCtx.fillStyle = "#050510";
-    bCtx.fillRect(0, 0, 1024, 768);
+/* UI */
+function draw(){
+    ctx.fillStyle="#0c0c16";
+    ctx.fillRect(0,0,W,H);
 
-    // 타이틀
-    bCtx.textAlign = "center";
-    const titleY = 250 + Math.sin(frame * 0.05) * 10;
-    bCtx.font = "italic 110px 'Black Han Sans'";
-    bCtx.shadowColor = "#00ffff"; bCtx.shadowBlur = 15;
-    bCtx.fillStyle = "#fff";
-    bCtx.fillText("GLASS QUEST", 512, titleY);
-    bCtx.shadowBlur = 0;
+    if(!power) return;
 
-    // 메뉴
-    menuItems.forEach((item, i) => {
-        const yPos = 460 + (i * 60);
-        const isHover = mouseX > 350 && mouseX < 670 && mouseY > yPos - 35 && mouseY < yPos + 15;
-        bCtx.fillStyle = isHover ? "#00ffff" : "#ffffff";
-        bCtx.font = isHover ? "900 32px 'Nanum Gothic Coding'" : "700 28px 'Nanum Gothic Coding'";
-        bCtx.fillText(isHover ? "> " + item + " <" : item, 512, yPos);
-    });
+    ctx.fillStyle="#fff";
+    ctx.textAlign="center";
+    ctx.font="bold 70px monospace";
+    ctx.fillText("VIRTUAL CRT",400,250);
+
+    ctx.font="18px monospace";
+    ctx.fillText("C : CRT  /  P : POWER",400,320);
 }
 
-const gl = outCanvas.getContext("webgl");
-const vShader = gl.createShader(gl.VERTEX_SHADER);
-gl.shaderSource(vShader, `attribute vec2 p;varying vec2 v;void main(){v=(p+1.)/2.;v.y=1.-v.y;gl_Position=vec4(p,0,1);}`);
-gl.compileShader(vShader);
+/* WebGL */
+const gl=out.getContext("webgl");
 
-const fShader = gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fShader, `
-    precision mediump float;
-    varying vec2 v;
-    uniform sampler2D t;
-    uniform float time;
+/* vertex */
+const vs=gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vs,`
+attribute vec2 p;
+varying vec2 v;
+void main(){
+v=(p+1.)/2.;
+v.y=1.-v.y;
+gl_Position=vec4(p,0,1);
+}`);
+gl.compileShader(vs);
 
-    vec2 distort(vec2 uv) {
-        uv = uv * 2.0 - 1.0;
-        float dist = 0.15; 
-        uv.x *= 1.0 + pow(abs(uv.y) * dist, 2.0);
-        uv.y *= 1.0 + pow(abs(uv.x) * dist, 2.0);
-        return uv * 0.5 + 0.5;
-    }
+/* fragment */
+const fs=gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fs,`
+precision mediump float;
+varying vec2 v;
+uniform sampler2D t;
+uniform float time;
+uniform float crt;
 
-    void main() {
-        vec2 u = distort(v);
-        if(u.x < 0.0 || u.x > 1.0 || u.y < 0.0 || u.y > 1.0) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
-        }
+float rand(vec2 c){
+return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
+}
 
-        // 기본 화면 컬러 (VHS 노이즈 제거, 선명하게)
-        vec3 col = texture2D(t, u).rgb;
+/* 🌀 강한 CRT 곡면 */
+vec2 distort(vec2 uv){
+    uv = uv * 2.0 - 1.0;
 
-        // 1. 유리 반사 효과 (Glass Reflection)
-        // 대각선 방향으로 가상의 창문/조명 반사광을 만듦
-        float reflection = smoothstep(0.4, 0.5, 1.0 - abs(u.x + u.y - 1.2)) * 0.15;
-        reflection += smoothstep(0.4, 0.45, 1.0 - abs(u.x + u.y - 0.5)) * 0.05;
-        
-        // 2. 상단 하이라이트 (유리 질감)
-        float highlight = smoothstep(0.0, 1.0, u.y) * 0.1;
-        
-        col += reflection + highlight;
+    float x = uv.x;
+    float y = uv.y;
 
-        // 3. 아주 미세한 스캔라인 (질감용)
-        col *= 0.96 + 0.04 * sin(u.y * 1000.0);
+    uv.x = x * (1.0 + y*y * 0.4);
+    uv.y = y * (1.0 + x*x * 0.4);
 
-        // 4. 비네팅
-        float vig = pow(120.0 * u.x * u.y * (1.0 - u.x) * (1.0 - u.y), 0.5);
-        gl_FragColor = vec4(col * vig, 1.0);
-    }
-`);
-gl.compileShader(fShader);
+    return uv * 0.5 + 0.5;
+}
 
-const prog = gl.createProgram();
-gl.attachShader(prog, vShader); gl.attachShader(prog, fShader);
-gl.linkProgram(prog); gl.useProgram(prog);
-const buf = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
-const pLoc = gl.getAttribLocation(prog, "p");
-gl.enableVertexAttribArray(pLoc); gl.vertexAttribPointer(pLoc, 2, gl.FLOAT, false, 0, 0);
-const tex = gl.createTexture();
-const tLoc = gl.getUniformLocation(prog, "time");
+void main(){
 
-function loop(t) {
-    outCanvas.width = outCanvas.clientWidth; outCanvas.height = outCanvas.clientHeight;
-    gl.viewport(0, 0, outCanvas.width, outCanvas.height);
-    drawBuffer();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bufferCanvas);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.uniform1f(tLoc, t/1000);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-    requestAnimationFrame(loop);
+vec2 u = crt>0.5 ? distort(v) : v;
+
+if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
+    gl_FragColor=vec4(0,0,0,1);
+    return;
+}
+
+/* 📼 VHS 라인 글리치 */
+float line = step(0.96, rand(vec2(time*0.5, floor(v.y*200.0))));
+float shift = line * (rand(vec2(time, v.y)) - 0.5) * 0.08;
+u.x += shift;
+
+/* 🔴 색 번짐 */
+float r =
+    texture2D(t, u + vec2(0.003, 0.0)).r * 0.6 +
+    texture2D(t, u + vec2(0.006, 0.0)).r * 0.4;
+
+float g =
+    texture2D(t, u).g * 0.7 +
+    texture2D(t, u + vec2(0.002, 0.0)).g * 0.3;
+
+float b =
+    texture2D(t, u - vec2(0.002, 0.0)).b * 0.85 +
+    texture2D(t, u - vec2(0.004, 0.0)).b * 0.15;
+
+vec3 col=vec3(r,g,b);
+
+/* scanline */
+col -= sin(u.y*700.0)*0.12;
+
+/* noise */
+col += rand(u+time)*0.04;
+
+/* 💡 강한 Bloom */
+vec3 bloom =
+    texture2D(t, u + vec2(0.002, 0.0)).rgb +
+    texture2D(t, u - vec2(0.002, 0.0)).rgb +
+    texture2D(t, u + vec2(0.0, 0.002)).rgb +
+    texture2D(t, u - vec2(0.0, 0.002)).rgb +
+    texture2D(t, u + vec2(0.004, 0.0)).rgb +
+    texture2D(t, u - vec2(0.004, 0.0)).rgb;
+
+bloom /= 6.0;
+
+float bright = max(max(col.r,col.g),col.b);
+col += bloom * bright * 0.8;
+
+/* 🔥 가장자리 어둡게 */
+col *= 1.0 - pow(length(v - 0.5) * 1.4, 2.0);
+
+gl_FragColor=vec4(col,1.0);
+}`);
+gl.compileShader(fs);
+
+/* program */
+const prog=gl.createProgram();
+gl.attachShader(prog,vs);
+gl.attachShader(prog,fs);
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+/* quad */
+const buffer=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
+-1,-1,1,-1,-1,1,
+-1,1,1,-1,1,1
+]),gl.STATIC_DRAW);
+
+const loc=gl.getAttribLocation(prog,"p");
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+
+/* texture */
+const tex=gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D,tex);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
+const timeLoc=gl.getUniformLocation(prog,"time");
+const crtLoc=gl.getUniformLocation(prog,"crt");
+
+/* loop */
+function loop(t){
+
+draw();
+
+gl.viewport(0,0,W,H);
+
+gl.bindTexture(gl.TEXTURE_2D,tex);
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
+
+gl.uniform1f(timeLoc,t*0.001);
+gl.uniform1f(crtLoc, crt?1:0);
+
+gl.drawArrays(gl.TRIANGLES,0,6);
+
+requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 </script>
+
 </body>
 </html>
