@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT FIX REAL</title>
+<title>CRT GAME UI</title>
 
 <style>
 body{
@@ -13,50 +13,35 @@ body{
     justify-content:center;
     align-items:center;
     overflow:hidden;
-    perspective:1200px;
 }
 
-/* 배경 */
-#bg{
-    position:fixed;
-    width:200%;
-    height:200%;
-    background:
-        radial-gradient(circle,#0a0d18 0%, #020204 70%),
-        repeating-linear-gradient(rgba(255,255,255,0.02) 0 1px, transparent 1px 60px);
-    transform:translateZ(-500px);
-}
-
-/* 화면 */
+/* 화면 크게 */
 #wrap{
     aspect-ratio:4/3;
-    width:90vw;
-    max-width:calc(90vh * 4/3);
-    max-height:90vh;
-    transform-style:preserve-3d;
+    width:95vw;
+    max-width:calc(95vh * 4/3);
+    max-height:95vh;
 }
 
+/* CRT 화면 */
 #screen{
-    position:relative;
     width:100%;
     height:100%;
-    border-radius:18px;
-    overflow:hidden;
     background:black;
+    border-radius:16px;
+    overflow:hidden;
     box-shadow:0 0 40px black, inset 0 0 20px black;
 }
 
 canvas{
-    position:absolute;
     width:100%;
     height:100%;
+    display:block;
 }
 </style>
 </head>
 
 <body>
-
-<div id="bg"></div>
 
 <div id="wrap">
     <div id="screen">
@@ -70,7 +55,6 @@ const W=800,H=600;
 
 const out=document.getElementById("out");
 const buf=document.getElementById("buf");
-const bg=document.getElementById("bg");
 
 out.width=W; out.height=H;
 buf.width=W; buf.height=H;
@@ -79,43 +63,99 @@ const ctx=buf.getContext("2d");
 
 /* 상태 */
 let crt=true;
-let power=1;
+let power=true;
+let mode="TITLE";
 
-/* 입력 */
-window.addEventListener("keydown",e=>{
-    if(e.key==="c") crt=!crt;
-    if(e.key==="p") power = power ? 0 : 1;
+const menu=["GAME START","PROJECT DATA","ABILITY","SYSTEM OFF"];
+
+let mx=0,my=0;
+
+/* 마우스 */
+out.addEventListener("mousemove",(e)=>{
+    const r=out.getBoundingClientRect();
+    mx=(e.clientX-r.left)*(W/r.width);
+    my=(e.clientY-r.top)*(H/r.height);
 });
 
-/* 3D */
-const wrap=document.getElementById("wrap");
-window.addEventListener("mousemove",e=>{
-    const x=(e.clientX/window.innerWidth-0.5)*10;
-    const y=(e.clientY/window.innerHeight-0.5)*10;
+/* 클릭 */
+out.addEventListener("click",()=>{
+    if(mode!=="TITLE"){
+        mode="TITLE";
+        return;
+    }
 
-    wrap.style.transform=`rotateY(${x}deg) rotateX(${-y}deg)`;
-    bg.style.transform=`translateZ(-500px) translate(${x*5}px,${y*5}px)`;
+    menu.forEach((m,i)=>{
+        const y=330+i*50;
+        if(mx>250&&mx<550&&my>y-30&&my<y+20){
+            mode=m;
+        }
+    });
+});
+
+/* 키 입력 (확실히 동작하게) */
+window.addEventListener("keydown",(e)=>{
+    const k=e.key.toLowerCase();
+
+    if(k==="c") crt=!crt;
+    if(k==="p") power=!power;
 });
 
 /* UI */
 function draw(){
+
     ctx.fillStyle="#0c0c16";
     ctx.fillRect(0,0,W,H);
 
-    ctx.fillStyle="#fff";
-    ctx.textAlign="center";
-    ctx.font="bold 60px monospace";
-    ctx.fillText("CRT ONLINE",400,260);
+    if(!power) return;
 
-    ctx.font="16px monospace";
-    ctx.fillText("C : CRT | P : POWER",400,330);
+    ctx.textAlign="center";
+
+    if(mode==="TITLE"){
+
+        ctx.fillStyle="#fff";
+        ctx.font="bold 70px monospace";
+        ctx.fillText("MISSION: POSS",400,180);
+
+        ctx.font="14px monospace";
+        ctx.fillStyle="#888";
+        ctx.fillText("SELECT MENU",400,230);
+
+        menu.forEach((m,i)=>{
+            const y=330+i*50;
+            const hover=mx>250&&mx<550&&my>y-30&&my<y+20;
+
+            if(hover){
+                ctx.fillStyle="white";
+                ctx.fillRect(250,y-35,300,40);
+
+                ctx.fillStyle="black";
+                ctx.font="bold 20px monospace";
+                ctx.fillText("> "+m,400,y-5);
+            }else{
+                ctx.strokeStyle="rgba(255,255,255,0.3)";
+                ctx.strokeRect(250,y-35,300,40);
+
+                ctx.fillStyle="#aaa";
+                ctx.font="20px monospace";
+                ctx.fillText(m,400,y-5);
+            }
+        });
+
+    }else{
+        ctx.fillStyle="#fff";
+        ctx.font="30px monospace";
+        ctx.fillText("LOADING ["+mode+"]",400,300);
+
+        ctx.font="16px monospace";
+        ctx.fillText("CLICK TO RETURN",400,340);
+    }
 }
 
 /* WebGL */
-const gl = out.getContext("webgl") || out.getContext("experimental-webgl");
-if(!gl){ alert("WebGL 안됨"); }
+const gl=out.getContext("webgl");
+if(!gl) alert("WebGL 안됨");
 
-/* shader */
+/* vertex */
 const vs=gl.createShader(gl.VERTEX_SHADER);
 gl.shaderSource(vs,`
 attribute vec2 p;
@@ -127,6 +167,7 @@ gl_Position=vec4(p,0,1);
 }`);
 gl.compileShader(vs);
 
+/* fragment */
 const fs=gl.createShader(gl.FRAGMENT_SHADER);
 gl.shaderSource(fs,`
 precision mediump float;
@@ -143,8 +184,8 @@ vec2 distort(vec2 uv){
     return uv*0.5+0.5;
 }
 
-float rand(vec2 co){
-    return fract(sin(dot(co,vec2(12.9898,78.233)))*43758.5453);
+float rand(vec2 c){
+    return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453);
 }
 
 void main(){
@@ -156,26 +197,20 @@ void main(){
         return;
     }
 
-    /* VHS 흔들림 */
-    float glitch = step(0.97, rand(vec2(time, v.y))) * 0.02;
-    u.x += glitch;
-
-    /* RGB */
     vec3 col;
+
     if(crt>0.5){
+
         float r=texture2D(t,u+vec2(0.003,0)).r;
         float g=texture2D(t,u).g;
         float b=texture2D(t,u-vec2(0.003,0)).b;
+
         col=vec3(r,g,b);
 
-        /* scanline */
         col -= sin(u.y*700.0)*0.15;
-
-        /* noise */
         col += rand(u+time)*0.06;
-
-        /* vignette */
         col *= 1.0 - length(v-0.5)*1.3;
+
     }else{
         col=texture2D(t,u).rgb;
     }
@@ -230,6 +265,7 @@ function loop(t){
 
     requestAnimationFrame(loop);
 }
+
 requestAnimationFrame(loop);
 </script>
 
