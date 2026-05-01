@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Retro Game Portfolio</title>
+    <title>Retro Console Portfolio</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
         
@@ -18,23 +18,21 @@
             font-family: 'Nanum Gothic Coding', monospace;
         }
 
-        /* 화면을 최대한 크게 설정 */
         #wrapper { 
             position: relative; 
-            width: 98vw; 
-            height: 98vh; 
-            max-width: 1200px;
-            max-height: 900px;
+            width: 95vw; 
+            height: 95vh; 
+            max-width: 1100px;
+            max-height: 825px; /* 4:3 비율 유지 */
         }
 
         #shaderCanvas { width: 100%; height: 100%; display: block; }
         #gameCanvas { display: none; }
         
-        /* 숨겨진 실제 클릭 영역들 (쉐이더 좌표 계산용) */
         #interaction-layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            cursor: crosshair;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -47,18 +45,17 @@
 </div>
 
 <script>
-/** [설정 영역] **/
-const menuItems = ["START GAME", "PROJECTS", "TECH SKILLS", "SYSTEM SHUTDOWN"];
-let selectedIndex = 0;
-let currentMode = "TITLE"; // TITLE, PROJECTS, SKILLS
+/** 1. 메뉴 데이터 및 상태 **/
+const menuItems = ["START PORTFOLIO", "PROJECT ARCHIVE", "TECH SPEC", "POWER OFF"];
+let currentView = "TITLE"; // TITLE, CONTENT
 let mousePos = { x: 0, y: 0 };
 let isPowerOff = false;
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = 1000; canvas.height = 750;
+canvas.width = 800; canvas.height = 600;
 
-/** 마우스 이벤트 처리 **/
+/** 2. 마우스 인터랙션 **/
 const layer = document.getElementById("interaction-layer");
 layer.addEventListener('mousemove', (e) => {
     const rect = layer.getBoundingClientRect();
@@ -69,72 +66,68 @@ layer.addEventListener('mousemove', (e) => {
 layer.addEventListener('click', () => {
     if (isPowerOff) { isPowerOff = false; return; }
     
-    // 메뉴 클릭 판정
-    if (currentMode === "TITLE") {
+    if (currentView === "TITLE") {
         menuItems.forEach((item, i) => {
-            const yPos = 400 + i * 60;
-            if (mousePos.y > yPos - 30 && mousePos.y < yPos + 20 && mousePos.x > 350 && mousePos.x < 650) {
-                handleMenu(i);
+            const yPos = 350 + i * 55;
+            // 버튼 클릭 판정 (중앙 가로 300px 범위)
+            if (mousePos.x > 250 && mousePos.x < 550 && mousePos.y > yPos - 30 && mousePos.y < yPos + 15) {
+                if(i === 3) isPowerOff = true;
+                else alert(item + " 기능을 여기에 연결하세요!");
             }
         });
-    } else {
-        currentMode = "TITLE"; // 상세 페이지에서 클릭하면 다시 타이틀로
     }
 });
 
-function handleMenu(index) {
-    if (index === 0) currentMode = "ABOUT";
-    if (index === 1) currentMode = "PROJECTS";
-    if (index === 2) currentMode = "SKILLS";
-    if (index === 3) isPowerOff = true;
-}
-
-/** 메인 드로잉 로직 (화면 안의 UI) **/
-function draw() {
-    ctx.fillStyle = isPowerOff ? "#000" : "#050508";
+/** 3. 게임 내부 그래픽 (2D) **/
+function drawUI() {
+    // 배경 (약간의 푸른기가 도는 90년대 블랙)
+    ctx.fillStyle = isPowerOff ? "#000" : "#080810";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (isPowerOff) return;
 
-    if (currentMode === "TITLE") {
-        // 타이틀 로고
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 80px 'Nanum Gothic Coding'";
-        ctx.fillText("DEV_PORTFOLIO", canvas.width/2, 250);
-        ctx.font = "20px 'Nanum Gothic Coding'";
-        ctx.fillStyle = "#ff0055";
-        ctx.fillText("VER 1.0 - 2026 ANALOG SIGNAL", canvas.width/2, 300);
+    // 상단 큼직한 게임 타이틀
+    ctx.textAlign = "center";
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#ff0055";
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 70px 'Nanum Gothic Coding'";
+    ctx.fillText("DEV_MISSION", canvas.width/2, 200);
+    ctx.shadowBlur = 0;
 
-        // 버튼 메뉴들
-        menuItems.forEach((item, i) => {
-            const yPos = 400 + i * 60;
-            const isHover = mousePos.y > yPos - 30 && mousePos.y < yPos + 20 && mousePos.x > 350 && mousePos.x < 650;
+    ctx.font = "16px 'Nanum Gothic Coding'";
+    ctx.fillStyle = "#444466";
+    ctx.fillText("© 2026 RETRO_DEV CORP. ALL RIGHTS RESERVED.", canvas.width/2, 240);
+
+    // 메뉴 버튼들
+    menuItems.forEach((item, i) => {
+        const yPos = 350 + i * 55;
+        const isHover = mousePos.x > 250 && mousePos.x < 550 && mousePos.y > yPos - 30 && mousePos.y < yPos + 15;
+
+        if (isHover) {
+            // 선택된 버튼 효과 (깜빡이는 화살표)
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 24px 'Nanum Gothic Coding'";
+            ctx.fillText("> " + item + " <", canvas.width/2, yPos);
             
-            if (isHover) {
-                ctx.fillStyle = "#fff";
-                ctx.fillRect(350, yPos - 35, 300, 50);
-                ctx.fillStyle = "#000";
-                ctx.fillText("> " + item + " <", canvas.width/2, yPos);
-            } else {
-                ctx.strokeStyle = "#fff";
-                ctx.strokeRect(350, yPos - 35, 300, 50);
-                ctx.fillStyle = "#fff";
-                ctx.fillText(item, canvas.width/2, yPos);
-            }
-        });
-    } else {
-        // 상세 페이지 공통 UI
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#00ffff";
-        ctx.font = "bold 40px 'Nanum Gothic Coding'";
-        ctx.fillText("[" + currentMode + "]", canvas.width/2, 150);
-        ctx.fillStyle = "#fff";
-        ctx.font = "20px 'Nanum Gothic Coding'";
-        ctx.fillText("내용을 여기에 추가하세요... (클릭 시 뒤로가기)", canvas.width/2, 400);
-    }
+            // 버튼 테두리 박스
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(250, yPos - 35, 300, 50);
+        } else {
+            // 일반 버튼
+            ctx.fillStyle = "#666";
+            ctx.font = "24px 'Nanum Gothic Coding'";
+            ctx.fillText(item, canvas.width/2, yPos);
+        }
+    });
+
+    // 하단 팁
+    ctx.fillStyle = "#333";
+    ctx.font = "12px 'Nanum Gothic Coding'";
+    ctx.fillText("USE MOUSE TO SELECT AND CLICK", canvas.width/2, 570);
 }
 
-/** 강력한 CRT 쉐이더 **/
+/** 4. 강력한 CRT 쉐이더 (WebGL) **/
 const sCanvas = document.getElementById("shaderCanvas");
 const gl = sCanvas.getContext("webgl");
 
@@ -154,11 +147,12 @@ const fragmentSource = `
     uniform sampler2D uTexture;
     uniform float uTime;
 
+    // 브라운관 곡률 왜곡
     vec2 curve(vec2 uv) {
         uv = (uv - 0.5) * 2.0;
         uv *= 1.1;	
-        uv.x *= 1.0 + pow((abs(uv.y) / 2.0), 2.0);
-        uv.y *= 1.0 + pow((abs(uv.x) / 1.5), 2.0);
+        uv.x *= 1.0 + pow((abs(uv.y) / 1.8), 2.0);
+        uv.y *= 1.0 + pow((abs(uv.x) / 1.2), 2.0);
         return (uv / 2.0) + 0.5;
     }
 
@@ -169,28 +163,28 @@ const fragmentSource = `
         }
 
         vec3 col;
-        float t = uTime;
-        
-        // RGB 채널 분리
-        col.r = texture2D(uTexture, uv + vec2(0.002, 0.0)).r;
+        // 색수차 (RGB 찢어짐)
+        col.r = texture2D(uTexture, uv + vec2(0.003, 0.0)).r;
         col.g = texture2D(uTexture, uv).g;
-        col.b = texture2D(uTexture, uv - vec2(0.002, 0.0)).b;
+        col.b = texture2D(uTexture, uv - vec2(0.003, 0.0)).b;
 
-        // 강력한 주사선 및 노이즈
-        float scanline = sin(uv.y * 800.0 + t * 10.0) * 0.1;
-        float noise = (fract(sin(dot(uv * t, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.15;
+        // 주사선(Scanline)
+        float scanline = sin(uv.y * 600.0 + uTime * 10.0) * 0.1;
         col -= scanline;
+
+        // 미세한 노이즈
+        float noise = (fract(sin(dot(uv * uTime, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.1;
         col += noise;
 
         // 비네팅
         float vig = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-        col *= pow(30.0 * vig, 0.4);
+        col *= pow(35.0 * vig, 0.45);
 
         gl_FragColor = vec4(col, 1.0);
     }
 `;
 
-// [WebGL 초기화 코드]
+// [WebGL 초기화 루틴]
 const program = gl.createProgram();
 function createShader(gl, type, source) {
     const s = gl.createShader(type);
@@ -210,7 +204,7 @@ const uTimeLoc = gl.getUniformLocation(program, "uTime");
 function render() {
     sCanvas.width = sCanvas.clientWidth; sCanvas.height = sCanvas.clientHeight;
     gl.viewport(0, 0, sCanvas.width, sCanvas.height);
-    draw();
+    drawUI();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
