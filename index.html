@@ -2,17 +2,19 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Dev Portfolio - CRT System</title>
+    <title>Retro Game Dev Portfolio</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
         
         :root {
-            --primary-color: #00ff66;
-            --bg-color: #050505;
+            --game-blue: #0044cc;
+            --game-yellow: #ffcc00;
+            --game-white: #ffffff;
+            --game-red: #cc0000;
         }
 
         body { 
-            background: var(--bg-color); 
+            background: #111; 
             margin: 0; 
             display: flex; 
             flex-direction: column;
@@ -24,45 +26,42 @@
             font-family: 'Nanum Gothic Coding', monospace;
         }
 
-        /* 배경 그리드 효과 */
-        body::before {
-            content: "";
+        /* 컨트롤 패널 (상단) */
+        #nav-bar {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            background-image: linear-gradient(rgba(0, 255, 102, 0.05) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0, 255, 102, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-            pointer-events: none;
-        }
-
-        #ui-layer {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
+            top: 10px;
             display: flex;
-            gap: 15px;
+            gap: 10px;
+            z-index: 100;
         }
 
-        .btn {
-            background: transparent;
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 8px 15px;
+        .nav-btn {
+            background: var(--game-blue);
+            border: 4px solid var(--game-white);
+            color: var(--game-white);
+            padding: 10px 20px;
+            font-weight: bold;
             cursor: pointer;
-            font-family: 'Nanum Gothic Coding';
-            transition: all 0.2s;
+            box-shadow: 4px 4px 0px #000;
+            image-rendering: pixelated;
         }
 
-        .btn:hover {
-            background: var(--primary-color);
-            color: black;
+        .nav-btn:hover {
+            background: var(--game-yellow);
+            color: #000;
         }
 
-        .btn.off {
-            border-color: #555;
-            color: #555;
+        .nav-btn.active {
+            background: var(--game-red);
+            transform: translateY(2px);
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        #crt-switch {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
         }
 
         #wrapper { 
@@ -70,159 +69,155 @@
             width: 120vh; 
             height: 90vh; 
             max-width: 95vw;
-            max-height: 95vh;
+            max-height: 92vh;
+            border: 10px solid #333;
+            box-sizing: border-box;
         }
 
         #gameCanvas { display: none; }
+        #shaderCanvas { width: 100%; height: 100%; display: block; }
 
-        #shaderCanvas { 
-            width: 100%; 
-            height: 100%; 
-            display: block;
-        }
-
-        /* CRT 효과가 꺼졌을 때 보여줄 일반 캔버스 스타일 */
-        #shaderCanvas.crt-off {
-            filter: none !important;
-        }
-
-        #system-log {
-            position: absolute;
-            bottom: -40px;
-            left: 0;
-            color: var(--primary-color);
-            font-size: 12px;
-            opacity: 0.7;
-        }
     </style>
 </head>
 <body>
 
-<div id="ui-layer">
-    <button id="crtToggle" class="btn">CRT EFFECT: ON</button>
+<div id="nav-bar">
+    <button class="nav-btn active" onclick="changeView('HOME', this)">MAIN START</button>
+    <button class="nav-btn" onclick="changeView('PROJECTS', this)">DATA BANK</button>
+    <button class="nav-btn" onclick="changeView('SKILLS', this)">TECH SPEC</button>
+</div>
+
+<div id="crt-switch">
+    <button class="nav-btn" style="font-size: 10px; padding: 5px;" onclick="toggleCRT()">CRT: ON</button>
 </div>
 
 <div id="wrapper">
     <canvas id="shaderCanvas"></canvas>
     <canvas id="gameCanvas"></canvas>
-    <div id="system-log">SYSTEM STATUS: OPERATIONAL | MEMORY: OK | RENDER: WEBGL</div>
 </div>
 
 <script>
-/** 1. 오디오 및 상태 설정 **/
+/** 1. 전역 상태 및 데이터 **/
+let currentView = 'HOME';
+let isCrtOn = true;
 let audioCtx = null;
 let gainNode = null;
-let isCrtOn = true;
 
-function initAudio() {
-    if (audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const bufferSize = 2 * audioCtx.sampleRate;
-    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+const projects = [
+    { name: "슈퍼 코딩 월드", desc: "고전 플랫폼 액션 게임 제작", tag: "Unity / C#" },
+    { name: "쉐이더 마스터", desc: "GLSL 기반 포스트 프로세싱", tag: "WebGL / JS" },
+    { name: "레트로 던전", desc: "절차적 생성 로그라이크", tag: "C++ / SFML" }
+];
 
-    const noiseNode = audioCtx.createBufferSource();
-    noiseNode.buffer = noiseBuffer;
-    noiseNode.loop = true;
+/** 2. 화면 전환 함수 **/
+function changeView(view, btn) {
+    initAudio(); // 첫 클릭 시 소리 재생
+    currentView = view;
     
-    gainNode = audioCtx.createGain();
-    gainNode.gain.value = 0.015; 
-
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = "highpass";
-    filter.frequency.value = 1000;
-
-    noiseNode.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    noiseNode.start();
+    // 버튼 활성화 스타일 관리
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 }
 
-/** 2. 포트폴리오 데이터 설정 **/
+function toggleCRT() {
+    isCrtOn = !isCrtOn;
+    event.target.textContent = `CRT: ${isCrtOn ? 'ON' : 'OFF'}`;
+    if(gainNode) gainNode.gain.setTargetAtTime(isCrtOn ? 0.015 : 0.002, audioCtx.currentTime, 0.1);
+}
+
+/** 3. 게임 UI 그리기 (2D 캔버스) **/
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 800; 
 canvas.height = 600;
 
-let page = 0;
-const projects = [
-    {
-        id: "PROJ-001",
-        name: "CYBERPUNK ACTION RAGDOLL",
-        tech: "C++, Unreal Engine 5",
-        desc: "물리 기반 캐릭터 애니메이션 및 전투 시스템 구현",
-        status: "COMPLETED"
-    },
-    {
-        id: "PROJ-002",
-        name: "WEBGL SHADER LAB",
-        tech: "GLSL, JavaScript",
-        desc: "고전 게임 효과 재현을 위한 포스트 프로세싱 라이브러리",
-        status: "IN-PROGRESS"
-    },
-    {
-        id: "PROJ-003",
-        name: "PIXEL DUNGEON CRAWLER",
-        tech: "Unity, C#",
-        desc: "절차적 지형 생성 알고리즘 기반 로그라이크 게임",
-        status: "STABLE"
-    }
-];
-
 function drawUI() {
-    // 배경
-    ctx.fillStyle = "#050812"; 
+    // 배경색 (클래식 RPG 블루)
+    ctx.fillStyle = "#000088"; 
     ctx.fillRect(0, 0, 800, 600);
     
-    // 헤더 영역
-    ctx.strokeStyle = "#00ff66";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(20, 20, 760, 60);
-    ctx.fillStyle = "#00ff66";
-    ctx.font = "bold 24px 'Nanum Gothic Coding'";
-    ctx.textAlign = "left";
-    ctx.fillText("PORTFOLIO MAIN TERMINAL v1.0", 40, 58);
-    
-    // 프로젝트 리스트 바 (좌측)
-    ctx.strokeRect(20, 100, 250, 480);
-    projects.forEach((p, i) => {
-        if(i === page) {
-            ctx.fillStyle = "rgba(0, 255, 102, 0.2)";
-            ctx.fillRect(30, 115 + (i * 50), 230, 40);
-        }
-        ctx.fillStyle = i === page ? "#fff" : "#00ff66";
-        ctx.font = "16px 'Nanum Gothic Coding'";
-        ctx.fillText(`> ${p.name.substring(0, 15)}...`, 45, 140 + (i * 50));
-    });
+    // 격자 장식
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    for(let i=0; i<800; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,600); ctx.stroke(); }
+    for(let i=0; i<600; i+=40) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(800,i); ctx.stroke(); }
 
-    // 상세 내용 영역 (우측)
-    const p = projects[page];
-    ctx.strokeRect(285, 100, 495, 480);
-    
-    ctx.fillStyle = "#00ff66";
-    ctx.font = "bold 28px 'Nanum Gothic Coding'";
-    ctx.fillText(p.name, 310, 150);
-    
-    ctx.font = "18px 'Nanum Gothic Coding'";
-    ctx.fillStyle = "#aaa";
-    ctx.fillText(`ID: ${p.id}`, 310, 190);
-    ctx.fillText(`TECH: ${p.tech}`, 310, 220);
-    ctx.fillText(`STATUS: ${p.status}`, 310, 250);
-    
-    ctx.fillStyle = "#fff";
-    ctx.font = "20px 'Nanum Gothic Coding'";
-    // 텍스트 줄바꿈 대략 처리
-    ctx.fillText("DESCRIPTION:", 310, 310);
-    ctx.font = "18px 'Nanum Gothic Coding'";
-    ctx.fillText(p.desc, 310, 345);
+    // 메인 테두리
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(20, 20, 760, 560);
 
-    // 하단 장식
-    ctx.fillStyle = "rgba(0, 255, 102, 0.5)";
-    ctx.fillRect(310, 540, (performance.now()/10 % 400), 10);
+    if (currentView === 'HOME') {
+        drawHome();
+    } else if (currentView === 'PROJECTS') {
+        drawProjects();
+    } else if (currentView === 'SKILLS') {
+        drawSkills();
+    }
 }
 
-/** 3. WebGL 및 CRT 스위치 설정 **/
+function drawHome() {
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffcc00";
+    ctx.font = "bold 60px 'Nanum Gothic Coding'";
+    ctx.fillText("GAME DEVELOPER", 400, 250);
+    ctx.fillStyle = "white";
+    ctx.font = "30px 'Nanum Gothic Coding'";
+    ctx.fillText("INSERT COIN TO START", 400, 350);
+    
+    // 깜빡이는 효과 (시간 이용)
+    if (Math.floor(Date.now() / 500) % 2 === 0) {
+        ctx.fillStyle = "#ff0000";
+        ctx.fillText("▼ SELECT MENU ABOVE ▼", 400, 450);
+    }
+}
+
+function drawProjects() {
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#ffcc00";
+    ctx.font = "bold 40px 'Nanum Gothic Coding'";
+    ctx.fillText("[ MY PROJECTS ]", 60, 100);
+
+    projects.forEach((p, i) => {
+        ctx.fillStyle = "white";
+        ctx.font = "bold 25px 'Nanum Gothic Coding'";
+        ctx.fillText(`${i+1}. ${p.name}`, 80, 180 + (i * 120));
+        ctx.font = "20px 'Nanum Gothic Coding'";
+        ctx.fillStyle = "#aaa";
+        ctx.fillText(`   ${p.desc}`, 80, 215 + (i * 120));
+        ctx.fillStyle = "#00ff66";
+        ctx.fillText(`   TECH: ${p.tag}`, 80, 245 + (i * 120));
+    });
+}
+
+function drawSkills() {
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffcc00";
+    ctx.font = "bold 40px 'Nanum Gothic Coding'";
+    ctx.fillText("< TECHNICAL SPECIFICATION >", 400, 100);
+
+    const skills = [
+        ["C++ / C#", 90], ["Unity / UE5", 85], 
+        ["Graphics / GLSL", 75], ["JavaScript", 80]
+    ];
+
+    skills.forEach((s, i) => {
+        ctx.textAlign = "left";
+        ctx.fillStyle = "white";
+        ctx.font = "25px 'Nanum Gothic Coding'";
+        ctx.fillText(s[0], 100, 200 + (i * 80));
+        
+        // 게이지 바
+        ctx.fillStyle = "#333";
+        ctx.fillRect(350, 180 + (i * 80), 350, 30);
+        ctx.fillStyle = "#00ff66";
+        ctx.fillRect(350, 180 + (i * 80), (s[1] / 100) * 350, 30);
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(350, 180 + (i * 80), 350, 30);
+    });
+}
+
+/** 4. WebGL 및 오디오 설정 (이전과 동일하되 최적화) **/
 const sCanvas = document.getElementById("shaderCanvas");
 const gl = sCanvas.getContext("webgl");
 
@@ -245,7 +240,7 @@ const fragmentSource = `
 
     vec2 curve(vec2 uv) {
         if (!uCrtEnabled) return uv;
-        uv = (uv - 0.5) * 2.1;
+        uv = (uv - 0.5) * 2.15;
         uv *= 1.1; 
         uv.x *= 1.0 + pow((abs(uv.y) / 4.0), 2.0);
         uv.y *= 1.0 + pow((abs(uv.x) / 3.0), 2.0);
@@ -254,27 +249,24 @@ const fragmentSource = `
 
     void main() {
         vec2 uv = curve(vTexCoord);
-        
         if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
         }
 
         if (!uCrtEnabled) {
-            gl_FragColor = texture2D(uTexture, uv);
-            return;
+            gl_FragColor = texture2D(uTexture, uv); return;
         }
 
-        float r = texture2D(uTexture, uv + vec2(0.002, 0.0)).r;
-        float g = texture2D(uTexture, uv).g;
-        float b = texture2D(uTexture, uv - vec2(0.002, 0.0)).b;
-        vec3 color = vec3(r, g, b);
+        vec3 color;
+        color.r = texture2D(uTexture, uv + vec2(0.002, 0.0)).r;
+        color.g = texture2D(uTexture, uv).g;
+        color.b = texture2D(uTexture, uv - vec2(0.002, 0.0)).b;
 
-        float scanline = sin(uv.y * 700.0) * 0.1;
+        float scanline = sin(uv.y * 650.0) * 0.08;
         color -= scanline;
-
-        float staticNoise = (fract(sin(dot(uv + mod(uTime, 10.0)*0.01, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.2;
-        color += staticNoise;
+        
+        float noise = (fract(sin(dot(uv + mod(uTime, 1.0), vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.15;
+        color += noise;
 
         float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
         color *= pow(16.0 * vignette, 0.4);
@@ -308,8 +300,24 @@ const texture = gl.createTexture();
 const uTimeLocation = gl.getUniformLocation(program, "uTime");
 const uCrtEnabledLocation = gl.getUniformLocation(program, "uCrtEnabled");
 
+function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < output.length; i++) output[i] = Math.random() * 2 - 1;
+    const noiseNode = audioCtx.createBufferSource();
+    noiseNode.buffer = noiseBuffer;
+    noiseNode.loop = true;
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0.015;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = "highpass"; filter.frequency.value = 1000;
+    noiseNode.connect(filter); filter.connect(gainNode); gainNode.connect(audioCtx.destination);
+    noiseNode.start();
+}
+
 function render() {
-    // 리사이즈 로직
     sCanvas.width = sCanvas.clientWidth;
     sCanvas.height = sCanvas.clientHeight;
     gl.viewport(0, 0, sCanvas.width, sCanvas.height);
@@ -324,29 +332,9 @@ function render() {
 
     gl.uniform1f(uTimeLocation, performance.now() / 1000);
     gl.uniform1i(uCrtEnabledLocation, isCrtOn ? 1 : 0);
-    
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(render);
 }
-
-// 클릭 이벤트
-window.addEventListener('mousedown', (e) => {
-    if (e.target.id === 'crtToggle') return; // 버튼 클릭시엔 무시
-    initAudio();
-    page = (page + 1) % projects.length; 
-});
-
-// CRT 토글 버튼
-document.getElementById('crtToggle').addEventListener('click', (e) => {
-    isCrtOn = !isCrtOn;
-    e.target.textContent = `CRT EFFECT: ${isCrtOn ? 'ON' : 'OFF'}`;
-    e.target.classList.toggle('off', !isCrtOn);
-    
-    if (gainNode) {
-        // 효과가 꺼지면 소리도 줄임
-        gainNode.gain.setTargetAtTime(isCrtOn ? 0.015 : 0.002, audioCtx.currentTime, 0.1);
-    }
-});
 
 render();
 </script>
