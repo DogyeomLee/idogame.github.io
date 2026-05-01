@@ -2,27 +2,12 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Perfect Ratio CRT Portfolio</title>
+    <title>Ultra CRT Game Title</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
-        body { 
-            background: #050505; 
-            margin: 0; 
-            overflow: hidden; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-        }
-        /* 4:3 비율 강제 고정 및 깔끔한 테두리 */
-        #container { 
-            position: relative; 
-            width: 80vh; /* 높이에 맞춘 너비 설정 (4:3) */
-            height: 60vh; 
-            box-shadow: 0 0 100px rgba(0,0,0,1), 0 0 20px rgba(255,255,255,0.05);
-            background: #000;
-        }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 20px; }
+        body { background: #000; margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #container { position: relative; width: 85vh; height: 63.75vh; background: #000; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
@@ -36,12 +21,11 @@
 const outCanvas = document.getElementById("outCanvas");
 const bufferCanvas = document.getElementById("bufferCanvas");
 const bCtx = bufferCanvas.getContext("2d");
-bufferCanvas.width = 800;
-bufferCanvas.height = 600;
+bufferCanvas.width = 800; bufferCanvas.height = 600;
 
+let frame = 0;
 let mouseX = 0, mouseY = 0;
-let currentMode = "TITLE";
-const menuItems = ["GAME START", "PROJECT DATA", "ABILITY", "SYSTEM OFF"];
+const menuItems = ["START MISSION", "DATA BANK", "SYSTEM CONFIG", "EXIT"];
 
 outCanvas.addEventListener('mousemove', (e) => {
     const rect = outCanvas.getBoundingClientRect();
@@ -49,58 +33,60 @@ outCanvas.addEventListener('mousemove', (e) => {
     mouseY = (e.clientY - rect.top) * (600 / rect.height);
 });
 
-outCanvas.addEventListener('click', () => {
-    menuItems.forEach((item, i) => {
-        const y = 350 + i * 55;
-        if (mouseX > 250 && mouseX < 550 && mouseY > y - 30 && mouseY < y + 20) {
-            currentMode = item;
-        }
-    });
-});
-
 function drawBuffer() {
-    bCtx.fillStyle = "#0c0c16";
+    frame++;
+    // 배경 그라데이션 (90년대 게임 특유의 짙은 파랑 배경)
+    const grad = bCtx.createLinearGradient(0, 0, 0, 600);
+    grad.addColorStop(0, "#000033");
+    grad.addColorStop(1, "#000000");
+    bCtx.fillStyle = grad;
     bCtx.fillRect(0, 0, 800, 600);
 
-    if (currentMode === "TITLE") {
-        // 게임 타이틀 느낌의 텍스트 배치
-        bCtx.textAlign = "center";
-        bCtx.fillStyle = "#fff";
-        bCtx.font = "bold 70px 'Nanum Gothic Coding'";
-        bCtx.fillText("MISSION: POSS", 400, 180);
-        
-        bCtx.font = "14px 'Nanum Gothic Coding'";
-        bCtx.fillStyle = "#555588";
-        bCtx.fillText("INSERT COIN OR SELECT MENU", 400, 230);
-
-        menuItems.forEach((item, i) => {
-            const y = 350 + i * 55;
-            const isHover = mouseX > 250 && mouseX < 550 && mouseY > y - 30 && mouseY < y + 20;
-            
-            if (isHover) {
-                bCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
-                bCtx.fillRect(250, y - 35, 300, 45);
-                bCtx.fillStyle = "#000";
-                bCtx.font = "bold 22px 'Nanum Gothic Coding'";
-                bCtx.fillText("> " + item, 400, y - 3);
-            } else {
-                bCtx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-                bCtx.lineWidth = 1;
-                bCtx.strokeRect(250, y - 35, 300, 45);
-                bCtx.fillStyle = "#888";
-                bCtx.font = "22px 'Nanum Gothic Coding'";
-                bCtx.fillText(item, 400, y - 3);
-            }
-        });
-    } else {
-        bCtx.fillStyle = "#fff";
-        bCtx.font = "30px 'Nanum Gothic Coding'";
-        bCtx.textAlign = "center";
-        bCtx.fillText("LOADING [" + currentMode + "]...", 400, 300);
-        bCtx.font = "16px 'Nanum Gothic Coding'";
-        bCtx.fillText("CLICK TO RETURN TO TITLE", 400, 350);
-        outCanvas.onclick = () => { currentMode = "TITLE"; outCanvas.onclick = null; };
+    // 배경 노이즈/먼지 효과 (움직이는 도트)
+    bCtx.fillStyle = "rgba(255,255,255,0.1)";
+    for(let i=0; i<20; i++) {
+        bCtx.fillRect((Math.sin(frame*0.01 + i)*800)%800, (i*40 + frame)%600, 2, 2);
     }
+
+    // 메인 로고 (그라데이션 + 외곽선)
+    bCtx.textAlign = "center";
+    const titleY = 180 + Math.sin(frame * 0.05) * 10; // 둥둥 떠 있는 효과
+    
+    bCtx.font = "bold 90px 'Nanum Gothic Coding'";
+    bCtx.strokeStyle = "#ff00ff";
+    bCtx.lineWidth = 10;
+    bCtx.strokeText("SUPER DEV", 400, titleY);
+    
+    const titleGrad = bCtx.createLinearGradient(0, titleY-50, 0, titleY);
+    titleGrad.addColorStop(0, "#00ffff");
+    titleGrad.addColorStop(1, "#0055ff");
+    bCtx.fillStyle = titleGrad;
+    bCtx.fillText("SUPER DEV", 400, titleY);
+
+    bCtx.font = "bold 20px 'Nanum Gothic Coding'";
+    bCtx.fillStyle = frame % 60 < 30 ? "#fff" : "transparent"; // 반짝이는 효과
+    bCtx.fillText("PRESS ANY BUTTON", 400, 260);
+
+    // 메뉴 인터페이스
+    menuItems.forEach((item, i) => {
+        const y = 380 + i * 50;
+        const isHover = mouseX > 250 && mouseX < 550 && mouseY > y - 30 && mouseY < y + 10;
+        
+        if (isHover) {
+            bCtx.fillStyle = "#ffff00";
+            bCtx.font = "bold 28px 'Nanum Gothic Coding'";
+            bCtx.fillText("▶ " + item + " ◀", 400, y);
+            // 선택 시 주변 광원 효과
+            bCtx.shadowBlur = 15;
+            bCtx.shadowColor = "#ffff00";
+        } else {
+            bCtx.fillStyle = "#aaa";
+            bCtx.font = "24px 'Nanum Gothic Coding'";
+            bCtx.fillText(item, 400, y);
+            bCtx.shadowBlur = 0;
+        }
+    });
+    bCtx.shadowBlur = 0;
 }
 
 const gl = outCanvas.getContext("webgl");
@@ -115,40 +101,36 @@ gl.shaderSource(fShader, `
     uniform sampler2D t;
     uniform float time;
 
-    // 왜곡 수식 최적화 (중앙은 평평하고 끝으로 갈수록 휘게)
-    vec2 scanDistort(vec2 uv) {
+    // 초강력 왜곡 공식
+    vec2 distort(vec2 uv) {
         uv = uv * 2.0 - 1.0;
-        vec2 offset = abs(uv.yx) / vec2(6.0, 4.0); // 가로세로 왜곡 비율 분리
-        uv = uv + uv * offset * offset;
+        vec2 offset = abs(uv.yx) / vec2(3.0, 2.2); // 숫자를 대폭 낮춰 왜곡 강도 상향
+        uv = uv + uv * offset * offset * offset; // 3제곱으로 더 급격하게 휘게 함
         return uv * 0.5 + 0.5;
     }
 
     void main() {
-        vec2 u = scanDistort(v);
-        
-        // 화면 밖 영역 처리 (검정색)
+        vec2 u = distort(v);
         if(u.x < 0.0 || u.x > 1.0 || u.y < 0.0 || u.y > 1.0) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
         }
 
-        // RGB 도트 배열 느낌 (Aperture Grille)
+        // RGB 분리 강화
         vec3 c;
-        float r = texture2D(t, u + vec2(0.0015, 0.0)).r;
-        float g = texture2D(t, u).g;
-        float b = texture2D(t, u - vec2(0.0015, 0.0)).b;
+        c.r = texture2D(t, u + vec2(0.004, 0.0)).r;
+        c.g = texture2D(t, u).g;
+        c.b = texture2D(t, u - vec2(0.004, 0.0)).b;
         
-        // 주사선 효과 강도 조절
-        float scanline = sin(u.y * 800.0) * 0.08;
-        c = vec3(r, g, b) - scanline;
-        
-        // 아주 미세한 지지직거림
-        float noise = fract(sin(dot(u + time, vec2(12.9898, 78.233))) * 43758.5453) * 0.05;
-        c += noise;
+        // 굵은 주사선
+        float s = sin(u.y * 400.0) * 0.15;
+        c -= s;
 
-        // 비네팅 (가장자리 어둡게)
-        float vignette = 1.0 - length(v - 0.5) * 1.3;
-        gl_FragColor = vec4(c * vignette, 1.0);
+        // 화면 떨림 (Flicker)
+        c *= 0.9 + 0.1 * sin(150.0 * time);
+
+        // 강력한 비네팅
+        float vig = pow(100.0 * u.x * u.y * (1.0 - u.x) * (1.0 - u.y), 0.6);
+        gl_FragColor = vec4(c * vig, 1.0);
     }
 `);
 gl.compileShader(fShader);
@@ -170,15 +152,10 @@ function loop(t) {
     outCanvas.width = outCanvas.clientWidth;
     outCanvas.height = outCanvas.clientHeight;
     gl.viewport(0, 0, outCanvas.width, outCanvas.height);
-
     drawBuffer();
-
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bufferCanvas);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    
     gl.uniform1f(tLoc, t/1000);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(loop);
