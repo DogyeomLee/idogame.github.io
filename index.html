@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT 3D SPACE</title>
+<title>게임 하십시오</title>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
@@ -18,34 +18,27 @@ body{
     perspective:1200px;
 }
 
-/* 3D 공간 느낌 배경 */
+/* 3D 배경 */
 #bg{
     position:fixed;
     width:200%;
     height:200%;
     background:
-        radial-gradient(circle at center, #0a0d18 0%, #020204 70%),
-        repeating-linear-gradient(
-            rgba(255,255,255,0.02) 0px,
-            rgba(255,255,255,0.02) 1px,
-            transparent 1px,
-            transparent 60px
-        );
+        radial-gradient(circle,#0a0d18 0%, #020204 70%),
+        repeating-linear-gradient(rgba(255,255,255,0.02) 0 1px, transparent 1px 60px);
     transform:translateZ(-500px);
 }
 
-/* 화면만 (본체 제거) */
-#screenWrap{
+/* 화면 */
+#wrap{
     aspect-ratio:4/3;
     width:90vw;
     max-width:calc(90vh * 4/3);
     max-height:90vh;
-
     transform-style:preserve-3d;
     transition:transform 0.2s;
 }
 
-/* 얇은 베젤 */
 #screen{
     position:relative;
     width:100%;
@@ -60,35 +53,25 @@ body{
         inset 0 0 2px rgba(255,255,255,0.1);
 }
 
-/* 캔버스 */
 canvas{
     position:absolute;
     width:100%;
     height:100%;
 }
 
-/* 유리 반사 */
 #glass{
     position:absolute;
     width:100%;
     height:100%;
     pointer-events:none;
-
-    background:linear-gradient(
-        120deg,
-        rgba(255,255,255,0.08),
-        rgba(255,255,255,0.02),
-        rgba(0,0,0,0.2)
-    );
+    background:linear-gradient(120deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02),rgba(0,0,0,0.2));
 }
 
-/* CRT 곡면 */
 #curve{
     position:absolute;
     width:100%;
     height:100%;
     pointer-events:none;
-
     box-shadow:
         inset 0 0 60px rgba(0,0,0,0.9),
         inset 0 0 150px rgba(0,0,0,0.5);
@@ -100,134 +83,163 @@ canvas{
 
 <div id="bg"></div>
 
-<div id="screenWrap">
+<div id="wrap">
     <div id="screen">
-        <canvas id="outCanvas"></canvas>
-        <canvas id="bufferCanvas" style="display:none;"></canvas>
-
+        <canvas id="out"></canvas>
+        <canvas id="buf" style="display:none;"></canvas>
         <div id="glass"></div>
         <div id="curve"></div>
     </div>
 </div>
 
 <script>
-const WIDTH=800, HEIGHT=600;
+const W=800,H=600;
 
-const outCanvas=document.getElementById("outCanvas");
-const bufferCanvas=document.getElementById("bufferCanvas");
+const out=document.getElementById("out");
+const buf=document.getElementById("buf");
 
-outCanvas.width=WIDTH;
-outCanvas.height=HEIGHT;
-bufferCanvas.width=WIDTH;
-bufferCanvas.height=HEIGHT;
+out.width=W; out.height=H;
+buf.width=W; buf.height=H;
 
-const bCtx=bufferCanvas.getContext("2d");
+const ctx=buf.getContext("2d");
 
-let mouseX=0, mouseY=0;
-let crtOn=true;
+/* 상태 */
+let crt=true;
+let power=true;
+let powerAnim=1; // 0~1
+let targetPower=1;
 
-/* ================= 3D 움직임 ================= */
-const wrap=document.getElementById("screenWrap");
-
-window.addEventListener("mousemove",(e)=>{
-    const x = (e.clientX/window.innerWidth - 0.5)*10;
-    const y = (e.clientY/window.innerHeight - 0.5)*10;
-
-    wrap.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
-
-    document.getElementById("bg").style.transform =
-        `translateZ(-500px) translate(${x*5}px, ${y*5}px)`;
+/* 입력 */
+window.addEventListener("keydown",e=>{
+    if(e.key==="c") crt=!crt;
+    if(e.key==="p") targetPower = targetPower ? 0 : 1;
 });
 
-/* ================= CRT 토글 ================= */
-window.addEventListener("keydown",(e)=>{
-    if(e.key.toLowerCase()==="c"){
-        crtOn = !crtOn;
-    }
+/* 3D */
+const wrap=document.getElementById("wrap");
+window.addEventListener("mousemove",e=>{
+    const x=(e.clientX/window.innerWidth-0.5)*10;
+    const y=(e.clientY/window.innerHeight-0.5)*10;
+
+    wrap.style.transform=`rotateY(${x}deg) rotateX(${-y}deg)`;
+
+    bg.style.transform=`translateZ(-500px) translate(${x*5}px,${y*5}px)`;
 });
 
-/* ================= UI ================= */
-function drawBuffer(){
-    bCtx.fillStyle="#0c0c16";
-    bCtx.fillRect(0,0,WIDTH,HEIGHT);
+/* UI */
+function draw(){
 
-    bCtx.fillStyle="#fff";
-    bCtx.textAlign="center";
-    bCtx.font="bold 70px 'Nanum Gothic Coding'";
-    bCtx.fillText("CRT MODE",400,250);
+    ctx.fillStyle="#0c0c16";
+    ctx.fillRect(0,0,W,H);
 
-    bCtx.font="16px 'Nanum Gothic Coding'";
-    bCtx.fillText("Press C to toggle CRT",400,320);
+    ctx.fillStyle="#fff";
+    ctx.textAlign="center";
+    ctx.font="bold 60px 'Nanum Gothic Coding'";
+    ctx.fillText("CRT SYSTEM",400,260);
+
+    ctx.font="16px 'Nanum Gothic Coding'";
+    ctx.fillText("C : CRT ON/OFF",400,330);
+    ctx.fillText("P : POWER",400,360);
 }
 
-/* ================= WebGL ================= */
-const gl=outCanvas.getContext("webgl");
+/* WebGL */
+const gl=out.getContext("webgl");
 
-const vShader=gl.createShader(gl.VERTEX_SHADER);
-gl.shaderSource(vShader,`
+const vs=gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vs,`
 attribute vec2 p;
 varying vec2 v;
 void main(){
-    v=(p+1.)/2.;
-    v.y=1.-v.y;
-    gl_Position=vec4(p,0,1);
+v=(p+1.)/2.;
+v.y=1.-v.y;
+gl_Position=vec4(p,0,1);
 }`);
-gl.compileShader(vShader);
+gl.compileShader(vs);
 
-const fShader=gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fShader,`
+const fs=gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fs,`
 precision mediump float;
 varying vec2 v;
 uniform sampler2D t;
 uniform float time;
 uniform float crt;
+uniform float power;
 
+/* CRT 곡면 */
 vec2 distort(vec2 uv){
-    uv=uv*2.0-1.0;
-    float d=dot(uv,uv);
-    uv*=1.0 + d*0.3*crt;
-    return uv*0.5+0.5;
+uv=uv*2.0-1.0;
+float d=dot(uv,uv);
+uv*=1.0+d*0.3;
+return uv*0.5+0.5;
+}
+
+float rand(vec2 co){
+return fract(sin(dot(co,vec2(12.9898,78.233)))*43758.5453);
 }
 
 void main(){
 
-    vec2 u = crt > 0.5 ? distort(v) : v;
+vec2 u=v;
 
-    if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
-        gl_FragColor=vec4(0,0,0,1);
-        return;
-    }
+if(crt>0.5){
+    u=distort(v);
+}
 
-    vec3 col;
+/* 전원 애니메이션 */
+float mask = smoothstep(power-0.05,power+0.05,abs(v.y-0.5));
+mask *= smoothstep(power-0.05,power+0.05,abs(v.x-0.5));
 
-    if(crt > 0.5){
-        float r=texture2D(t,u+vec2(0.004,0.0)).r;
-        float g=texture2D(t,u).g;
-        float b=texture2D(t,u-vec2(0.004,0.0)).b;
-        col=vec3(r,g,b);
+if(power<0.01){
+    gl_FragColor=vec4(0,0,0,1);
+    return;
+}
 
-        col -= sin(u.y*700.0)*0.18;
+if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
+    gl_FragColor=vec4(0,0,0,1);
+    return;
+}
 
-        float noise=fract(sin(dot(u+time,vec2(12.9898,78.233)))*43758.5453);
-        col += noise*0.05;
+vec3 col;
 
-        col *= 1.0 - length(v-0.5)*1.3;
-    }else{
-        col = texture2D(t,u).rgb;
-    }
+/* VHS glitch */
+float glitch = step(0.95,rand(vec2(time, v.y))) * 0.1;
+u.x += glitch;
 
-    gl_FragColor=vec4(col,1.0);
+/* RGB */
+if(crt>0.5){
+    float r=texture2D(t,u+vec2(0.003,0.0)).r;
+    float g=texture2D(t,u).g;
+    float b=texture2D(t,u-vec2(0.003,0.0)).b;
+    col=vec3(r,g,b);
+
+    col -= sin(u.y*700.0)*0.15;
+
+    float noise=rand(u+time)*0.05;
+    col+=noise;
+
+    col *= 1.0-length(v-0.5)*1.3;
+}else{
+    col=texture2D(t,u).rgb;
+}
+
+/* 잔상 */
+col += texture2D(t,u+0.002).rgb * 0.08;
+
+/* 전원 마스크 적용 */
+col *= mask;
+
+gl_FragColor=vec4(col,1.0);
 }`);
-gl.compileShader(fShader);
+gl.compileShader(fs);
 
 const prog=gl.createProgram();
-gl.attachShader(prog,vShader);
-gl.attachShader(prog,fShader);
+gl.attachShader(prog,vs);
+gl.attachShader(prog,fs);
 gl.linkProgram(prog);
 gl.useProgram(prog);
 
-const buf=gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+const bufGL=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,bufGL);
 gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
 -1,-1,1,-1,-1,1,
 -1,1,1,-1,1,1
@@ -245,24 +257,30 @@ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 
 const timeLoc=gl.getUniformLocation(prog,"time");
 const crtLoc=gl.getUniformLocation(prog,"crt");
+const powerLoc=gl.getUniformLocation(prog,"power");
 
-/* ================= loop ================= */
+/* loop */
 function loop(t){
 
-    drawBuffer();
+draw();
 
-    gl.viewport(0,0,WIDTH,HEIGHT);
+/* 전원 애니메이션 */
+powerAnim += (targetPower - powerAnim)*0.08;
 
-    gl.bindTexture(gl.TEXTURE_2D,tex);
-    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bufferCanvas);
+gl.viewport(0,0,W,H);
 
-    gl.uniform1f(timeLoc,t*0.001);
-    gl.uniform1f(crtLoc, crtOn ? 1.0 : 0.0);
+gl.bindTexture(gl.TEXTURE_2D,tex);
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,buf);
 
-    gl.drawArrays(gl.TRIANGLES,0,6);
+gl.uniform1f(timeLoc,t*0.001);
+gl.uniform1f(crtLoc,crt?1:0);
+gl.uniform1f(powerLoc,powerAnim);
 
-    requestAnimationFrame(loop);
+gl.drawArrays(gl.TRIANGLES,0,6);
+
+requestAnimationFrame(loop);
 }
+
 requestAnimationFrame(loop);
 </script>
 
