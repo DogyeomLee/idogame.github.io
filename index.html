@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>CRT Retro Interface</title>
+    <title>강력한 CRT 왜곡 인터페이스</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@700&display=swap');
 
@@ -16,68 +16,79 @@
             overflow: hidden;
         }
 
-        /* [핵심] 화면을 오목/볼록하게 깎아내는 컨테이너 */
-        #monitor-shaper {
+        /* [핵심] 이미지처럼 화면을 볼록하게 깎아내는 마스크 */
+        #crt-frame {
             position: relative;
             width: 800px;
             height: 600px;
-            /* 모서리를 원형으로 깎아서 브라운관 느낌 구현 */
-            border-radius: 50% / 10%; 
-            overflow: hidden;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+            background: #000;
+            /* 테두리를 곡선으로 깎음 */
+            clip-path: ellipse(48% 45% at 50% 50%); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        #screen {
+        #screen-container {
             position: relative;
-            width: 100%;
-            height: 100%;
-            background: #020508;
-            /* 화면 자체가 안쪽으로 말린 듯한 왜곡 */
-            transform: scaleX(1.1) scaleY(1.1);
+            width: 105%; /* 깎인 부분을 채우기 위해 살짝 크게 설정 */
+            height: 105%;
+            background: #050505;
+            overflow: hidden;
         }
 
-        /* 1. CRT 미세 주사선 (가로선) */
-        #screen::before {
-            content: " ";
-            display: block;
+        /* 1. 강력한 가로 주사선 (Scanline) */
+        .scanlines {
             position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-            background-size: 100% 4px; /* 선 간격 */
-            z-index: 10;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.4) 50%
+            );
+            background-size: 100% 3px;
+            z-index: 5;
             pointer-events: none;
         }
 
-        /* 2. 지지직거리는 노이즈 오버레이 */
-        #screen::after {
-            content: " ";
-            display: block;
+        /* 2. 화면 모서리 어두운 그림자 (비네팅) */
+        .vignette {
             position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: rgba(18, 16, 16, 0.05);
-            opacity: 0.1;
-            z-index: 11;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(
+                circle at center, 
+                transparent 50%, 
+                rgba(0,0,0,0.9) 100%
+            );
+            z-index: 6;
             pointer-events: none;
-            animation: grain 0.1s steps(2) infinite;
         }
 
-        @keyframes grain {
-            0% { background-position: 0 0; }
-            100% { background-position: 10px 10px; }
+        /* 3. 노이즈 애니메이션 오버레이 */
+        .noise {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 4;
+            opacity: 0.08;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
 
         canvas {
-            image-rendering: pixelated;
             width: 100%;
             height: 100%;
-            filter: blur(0.3px) brightness(1.2) contrast(1.1);
+            image-rendering: pixelated;
+            /* 이미지 특유의 약간 번진듯한 느낌 */
+            filter: blur(0.4px) contrast(1.2) brightness(1.1);
         }
     </style>
 </head>
 <body>
 
-<div id="monitor-shaper">
-    <div id="screen">
+<div id="crt-frame">
+    <div id="screen-container">
+        <div class="scanlines"></div>
+        <div class="vignette"></div>
+        <div class="noise"></div>
         <canvas id="gameCanvas"></canvas>
     </div>
 </div>
@@ -108,61 +119,61 @@ const data = [
 function draw() {
     const d = data[page];
     
-    // 배경색
-    ctx.fillStyle = "#020810";
+    // 짙은 브라운관 배경색
+    ctx.fillStyle = "#0a0a10";
     ctx.fillRect(0, 0, 640, 480);
 
-    // [노이즈] 매 프레임 무작위 픽셀 노이즈 추가
-    for (let i = 0; i < 300; i++) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.03})`;
+    // 랜덤 픽셀 지지직 효과
+    for (let i = 0; i < 400; i++) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.05})`;
         ctx.fillRect(Math.random() * 640, Math.random() * 480, 1, 1);
     }
 
-    // RPG 스타일 흰색 박스
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(40, 40, 560, 400);
+    // 기본 RPG 프레임 (흰색 박스)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(50, 50, 540, 380);
 
     ctx.fillStyle = "white";
-    ctx.font = "bold 26px 'Nanum Gothic Coding'";
+    ctx.font = "bold 28px 'Nanum Gothic Coding'";
     ctx.textAlign = "center";
-    ctx.fillText(d.title, 320, 85);
+    ctx.fillText(d.title, 320, 100);
 
     ctx.textAlign = "left";
-    ctx.font = "24px 'Nanum Gothic Coding'";
-    ctx.fillText(`이름: ${d.name}`, 80, 150);
-    ctx.fillText(`레벨: ${d.lv}`, 420, 150);
+    ctx.fillText(`이름: ${d.name}`, 80, 160);
+    ctx.fillText(`레벨: ${d.lv}`, 420, 160);
 
-    // 게이지 그리기
     const drawBar = (label, val, max, y, color) => {
+        ctx.font = "22px 'Nanum Gothic Coding'";
         ctx.fillText(label, 80, y);
         ctx.fillStyle = "#111";
         ctx.fillRect(150, y - 20, 400, 24);
         ctx.fillStyle = color;
         ctx.fillRect(150, y - 20, (val / max) * 400, 24);
         ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
         ctx.strokeRect(150, y - 20, 400, 24);
         ctx.fillStyle = "white";
     };
-    drawBar("생명", d.hp, 1000, 210, "#cc3333");
-    drawBar("마력", d.mp, 1000, 260, "#3366cc");
+    drawBar("생명", d.hp, 1000, 220, "#d32f2f");
+    drawBar("마력", d.mp, 1000, 270, "#1976d2");
 
-    // 상세 스탯
     d.stats.forEach((s, i) => {
         let x = (i % 2 === 0) ? 80 : 340;
-        let y = 330 + (Math.floor(i / 2) * 60);
+        let y = 340 + (Math.floor(i / 2) * 60);
         ctx.font = "22px 'Nanum Gothic Coding'";
         ctx.fillText(`${s[0]}: ${s[1]}`, x, y);
         ctx.fillStyle = "#222";
         ctx.fillRect(x, y + 10, 200, 4);
-        ctx.fillStyle = "#00ff88";
+        ctx.fillStyle = "#4caf50";
         ctx.fillRect(x, y + 10, s[1] * 2, 4);
         ctx.fillStyle = "white";
     });
 
-    // 화면 미세 흔들림 (Vsync 불안정 느낌)
-    const vSyncOffset = (Math.random() - 0.5) * 0.5;
-    canvas.style.transform = `translateY(${vSyncOffset}px)`;
+    // 화면 미세 떨림 (Sync 불안정 효과)
+    const jitterX = (Math.random() - 0.5) * 0.8;
+    const jitterY = (Math.random() - 0.5) * 0.8;
+    canvas.style.transform = `translate(${jitterX}px, ${jitterY}px)`;
 
     requestAnimationFrame(draw);
 }
