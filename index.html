@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT STABLE</title>
+<title>CRT + Bloom</title>
 
 <style>
 body{
@@ -102,7 +102,7 @@ gl_Position=vec4(p,0,1);
 }`);
 gl.compileShader(vs);
 
-/* fragment (초안정 버전) */
+/* fragment (Bloom 포함 안정 버전) */
 const fs=gl.createShader(gl.FRAGMENT_SHADER);
 gl.shaderSource(fs,`
 precision mediump float;
@@ -131,7 +131,7 @@ if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
     return;
 }
 
-/* 간단 RGB */
+/* RGB */
 float r=texture2D(t,u+vec2(0.002,0)).r;
 float g=texture2D(t,u).g;
 float b=texture2D(t,u-vec2(0.002,0)).b;
@@ -143,6 +143,19 @@ col -= sin(u.y*600.0)*0.1;
 
 /* noise */
 col += rand(u+time)*0.03;
+
+/* ===== 🔥 Bloom 추가 ===== */
+vec3 bloom =
+    texture2D(t, u + vec2(0.002, 0.0)).rgb +
+    texture2D(t, u - vec2(0.002, 0.0)).rgb +
+    texture2D(t, u + vec2(0.0, 0.002)).rgb +
+    texture2D(t, u - vec2(0.0, 0.002)).rgb;
+
+bloom *= 0.25;
+
+float bright = max(max(col.r, col.g), col.b);
+col += bloom * bright * 0.4;
+/* ========================= */
 
 /* vignette */
 col *= 1.0 - length(v-0.5)*1.2;
