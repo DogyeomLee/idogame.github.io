@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT + Bloom</title>
+<title>CRT + Bloom + Chromatic Bleed</title>
 
 <style>
 body{
@@ -102,7 +102,7 @@ gl_Position=vec4(p,0,1);
 }`);
 gl.compileShader(vs);
 
-/* fragment (Bloom 포함 안정 버전) */
+/* fragment */
 const fs=gl.createShader(gl.FRAGMENT_SHADER);
 gl.shaderSource(fs,`
 precision mediump float;
@@ -131,12 +131,24 @@ if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
     return;
 }
 
-/* RGB */
-float r=texture2D(t,u+vec2(0.002,0)).r;
-float g=texture2D(t,u).g;
-float b=texture2D(t,u-vec2(0.002,0)).b;
+/* ===== 🔴 Chromatic Bleed ===== */
+// Red (많이 퍼짐)
+float r =
+    texture2D(t, u + vec2(0.003, 0.0)).r * 0.6 +
+    texture2D(t, u + vec2(0.006, 0.0)).r * 0.4;
+
+// Green (중간)
+float g =
+    texture2D(t, u).g * 0.7 +
+    texture2D(t, u + vec2(0.002, 0.0)).g * 0.3;
+
+// Blue (적게 퍼짐)
+float b =
+    texture2D(t, u - vec2(0.002, 0.0)).b * 0.85 +
+    texture2D(t, u - vec2(0.004, 0.0)).b * 0.15;
 
 vec3 col=vec3(r,g,b);
+/* ============================= */
 
 /* scanline */
 col -= sin(u.y*600.0)*0.1;
@@ -144,7 +156,7 @@ col -= sin(u.y*600.0)*0.1;
 /* noise */
 col += rand(u+time)*0.03;
 
-/* ===== 🔥 Bloom 추가 ===== */
+/* ===== 💡 Bloom ===== */
 vec3 bloom =
     texture2D(t, u + vec2(0.002, 0.0)).rgb +
     texture2D(t, u - vec2(0.002, 0.0)).rgb +
@@ -155,7 +167,7 @@ bloom *= 0.25;
 
 float bright = max(max(col.r, col.g), col.b);
 col += bloom * bright * 0.4;
-/* ========================= */
+/* ==================== */
 
 /* vignette */
 col *= 1.0 - length(v-0.5)*1.2;
