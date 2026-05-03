@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT FIXED</title>
+<title>CRT 3D FIX</title>
 
 <style>
 body{
@@ -14,7 +14,6 @@ body{
     height:100vh;
 }
 
-/* 4:3 */
 #wrap{
     aspect-ratio:4/3;
     height:95vh;
@@ -26,19 +25,14 @@ body{
     height:100%;
 }
 
-/* canvas */
 canvas{
     position:absolute;
     width:100%;
     height:100%;
 }
 
-/* ❗ buf 숨김 */
-#buf{
-    display:none;
-}
+#buf{ display:none; }
 
-/* 유리 */
 #glass{
     position:absolute;
     width:100%;
@@ -70,22 +64,24 @@ const ctx=bufCanvas.getContext("2d");
 glCanvas.width=W; glCanvas.height=H;
 bufCanvas.width=W; bufCanvas.height=H;
 
-/* ===== 유리 ===== */
+let mx=400,my=300;
+
+/* 🪟 유리 */
 const glass=document.getElementById("glass");
 
 glCanvas.addEventListener("mousemove",(e)=>{
     const r=glCanvas.getBoundingClientRect();
-    const mx=(e.clientX-r.left)/r.width*100;
-    const my=(e.clientY-r.top)/r.height*100;
+    mx=(e.clientX-r.left)*(W/r.width);
+    my=(e.clientY-r.top)*(H/r.height);
 
     glass.style.background =
-    `radial-gradient(circle at ${mx}% ${my}%,
+    `radial-gradient(circle at ${mx/W*100}% ${my/H*100}%,
     rgba(255,255,255,0.25),
     rgba(255,255,255,0.05) 30%,
     transparent 60%)`;
 });
 
-/* ===== UI ===== */
+/* UI */
 function draw(){
     ctx.fillStyle="#05060a";
     ctx.fillRect(0,0,W,H);
@@ -93,13 +89,13 @@ function draw(){
     ctx.fillStyle="#fff";
     ctx.textAlign="center";
     ctx.font="bold 70px monospace";
-    ctx.fillText("CRT FIXED",400,260);
+    ctx.fillText("CRT 3D",400,260);
 
-    ctx.font="20px monospace";
-    ctx.fillText("WEBGL ACTIVE",400,320);
+    ctx.font="18px monospace";
+    ctx.fillText("REALISTIC CURVE",400,320);
 }
 
-/* ===== WebGL ===== */
+/* WebGL */
 const gl=glCanvas.getContext("webgl");
 
 function compile(type,src){
@@ -123,19 +119,29 @@ v.y=1.-v.y;
 gl_Position=vec4(p,0,1);
 }`);
 
-/* fragment */
+/* 🔥 핵심 fragment */
 const fs=compile(gl.FRAGMENT_SHADER,`
 precision mediump float;
 varying vec2 v;
 uniform sampler2D t;
 uniform float time;
+uniform vec2 mouse;
 
-/* CRT 왜곡 */
+/* ✔️ 왜곡 줄인 CRT */
 vec2 crt(vec2 uv){
     uv = uv*2.0-1.0;
-    uv.x *= 1.0 + abs(uv.y)*abs(uv.y)*0.3;
-    uv.y *= 1.0 + abs(uv.x)*abs(uv.x)*0.3;
-    return uv*0.5+0.5;
+
+    float x = uv.x * (1.0 + uv.y*uv.y*0.15);
+    float y = uv.y * (1.0 + uv.x*uv.x*0.08);
+
+    return vec2(x,y)*0.5+0.5;
+}
+
+/* ✔️ 3D 시점 */
+vec2 perspective(vec2 uv){
+    vec2 m = (mouse - 0.5) * 0.15;
+    uv += m * (uv - 0.5);
+    return uv;
 }
 
 float noise(vec2 p){
@@ -144,17 +150,19 @@ float noise(vec2 p){
 
 void main(){
 
-vec2 u=crt(v);
+vec2 u = perspective(v);
+u = crt(u);
 
+/* 밖 검정 */
 if(u.x<0.0||u.x>1.0||u.y<0.0||u.y>1.0){
     gl_FragColor=vec4(0,0,0,1);
     return;
 }
 
 /* RGB */
-float r=texture2D(t,u+vec2(0.003,0)).r;
+float r=texture2D(t,u+vec2(0.002,0)).r;
 float g=texture2D(t,u).g;
-float b=texture2D(t,u-vec2(0.003,0)).b;
+float b=texture2D(t,u-vec2(0.002,0)).b;
 
 vec3 col=vec3(r,g,b);
 
@@ -165,20 +173,21 @@ texture2D(t,u-vec2(0.002,0)).rgb +
 texture2D(t,u+vec2(0,0.002)).rgb +
 texture2D(t,u-vec2(0,0.002)).rgb;
 
-col += bloom*0.5;
+col += bloom*0.35;
 
 /* scanline */
-col -= sin(u.y*900.0)*0.15;
+col -= sin(u.y*800.0)*0.12;
 
 /* noise */
-col += noise(u+time)*0.03;
+col += noise(u+time)*0.025;
 
 /* vignette */
-col *= 1.0 - length(v-0.5)*1.2;
+col *= 1.0 - length(v-0.5)*1.1;
 
 gl_FragColor=vec4(col,1.0);
 }`);
 
+/* program */
 const prog=gl.createProgram();
 gl.attachShader(prog,vs);
 gl.attachShader(prog,fs);
@@ -200,21 +209,18 @@ gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
 /* texture */
 const tex=gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D,tex);
-
-/* 🔥 중요 설정 */
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
 
 const timeLoc=gl.getUniformLocation(prog,"time");
+const mouseLoc=gl.getUniformLocation(prog,"mouse");
 
 /* loop */
 function loop(t){
 
 draw();
 
-/* 🔥 clear */
 gl.clearColor(0,0,0,1);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -223,6 +229,7 @@ gl.viewport(0,0,W,H);
 gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bufCanvas);
 
 gl.uniform1f(timeLoc,t*0.001);
+gl.uniform2f(mouseLoc,mx/W,my/H);
 
 gl.drawArrays(gl.TRIANGLES,0,6);
 
