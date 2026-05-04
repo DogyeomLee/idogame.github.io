@@ -2,26 +2,22 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>CRT + SIDE 3D BG</title>
+<title>CRT + SPACE FX</title>
 
 <style>
 body{
     margin:0;
     overflow:hidden;
-    background:#000;
+    background:black;
 }
 
-/* 🌌 전체 배경 캔버스 */
 #bg{
     position:fixed;
-    top:0;
-    left:0;
     width:100%;
     height:100%;
     z-index:0;
 }
 
-/* CRT 중앙 */
 #wrap{
     position:fixed;
     top:50%;
@@ -32,21 +28,14 @@ body{
     z-index:2;
 }
 
-#screen{
-    position:relative;
-    width:100%;
-    height:100%;
-}
-
 canvas{
     position:absolute;
     width:100%;
     height:100%;
 }
 
-#buf{ display:none; }
+#buf{display:none;}
 
-/* 유리 */
 #glass{
     position:absolute;
     width:100%;
@@ -58,47 +47,57 @@ canvas{
 
 <body>
 
-<!-- 🌌 배경 -->
 <canvas id="bg"></canvas>
 
-<!-- 📺 CRT -->
 <div id="wrap">
-<div id="screen">
 <canvas id="gl"></canvas>
 <canvas id="buf"></canvas>
 <div id="glass"></div>
 </div>
-</div>
 
 <script>
 /* =========================
-   🌌 배경 (진짜 3D 느낌)
+   🌌 우주 배경
 ========================= */
 const bg=document.getElementById("bg");
 const bgCtx=bg.getContext("2d");
 
-function resizeBG(){
-    bg.width=window.innerWidth;
-    bg.height=window.innerHeight;
+function resize(){
+    bg.width=innerWidth;
+    bg.height=innerHeight;
 }
-resizeBG();
-window.addEventListener("resize",resizeBG);
+resize();
+window.onresize=resize;
 
 let mx=0,my=0;
-
-window.addEventListener("mousemove",(e)=>{
+window.onmousemove=e=>{
     mx=e.clientX;
     my=e.clientY;
-});
+};
 
-/* 별 생성 */
+/* ⭐ 별 */
 let stars=[];
-for(let i=0;i<200;i++){
+for(let i=0;i<150;i++){
     stars.push({
-        x:Math.random()*window.innerWidth,
-        y:Math.random()*window.innerHeight,
-        z:Math.random()*3+0.5
+        x:Math.random()*bg.width,
+        y:Math.random()*bg.height,
+        z:Math.random()*3+0.5,
+        tw:Math.random()*100
     });
+}
+
+/* 💥 폭발 파티클 */
+let particles=[];
+
+function spawnExplosion(x,y){
+    for(let i=0;i<20;i++){
+        particles.push({
+            x,y,
+            vx:(Math.random()-0.5)*4,
+            vy:(Math.random()-0.5)*4,
+            life:1
+        });
+    }
 }
 
 function drawBG(){
@@ -106,53 +105,68 @@ function drawBG(){
     bgCtx.fillStyle="#02030a";
     bgCtx.fillRect(0,0,bg.width,bg.height);
 
+    /* ⭐ 별 */
     stars.forEach(s=>{
-
-        s.y += s.z*0.5;
-        if(s.y > bg.height){
-            s.y = 0;
-            s.x = Math.random()*bg.width;
+        s.y += s.z*0.4;
+        if(s.y>bg.height){
+            s.y=0;
+            s.x=Math.random()*bg.width;
         }
 
+        /* 반짝 */
+        s.tw += 0.1;
+        let alpha = 0.5 + Math.sin(s.tw)*0.3;
+
         /* 패럴랙스 */
-        let px = s.x + (mx - bg.width/2)*0.03*s.z;
-        let py = s.y + (my - bg.height/2)*0.03*s.z;
+        let px = s.x + (mx-bg.width/2)*0.02*s.z;
+        let py = s.y + (my-bg.height/2)*0.02*s.z;
 
-        let size = s.z * 2;
+        bgCtx.fillStyle=`rgba(255,255,255,${alpha})`;
+        bgCtx.fillRect(px,py,s.z*2,s.z*2);
 
-        bgCtx.fillStyle = `rgba(255,255,255,${0.4 + s.z*0.2})`;
-        bgCtx.fillRect(px,py,size,size);
+        /* 💥 랜덤 폭발 */
+        if(Math.random()<0.0008){
+            spawnExplosion(px,py);
+        }
     });
+
+    /* 💥 파티클 */
+    particles.forEach(p=>{
+        p.x+=p.vx;
+        p.y+=p.vy;
+        p.life-=0.02;
+
+        bgCtx.fillStyle=`rgba(255,200,100,${p.life})`;
+        bgCtx.fillRect(p.x,p.y,2,2);
+    });
+
+    particles = particles.filter(p=>p.life>0);
 }
 
 /* =========================
-   📺 CRT (기존 유지)
+   📺 CRT
 ========================= */
 const W=800,H=600;
-
 const glCanvas=document.getElementById("gl");
 const bufCanvas=document.getElementById("buf");
 const ctx=bufCanvas.getContext("2d");
 
-glCanvas.width=W; glCanvas.height=H;
-bufCanvas.width=W; bufCanvas.height=H;
+glCanvas.width=W; bufCanvas.width=W;
+glCanvas.height=H; bufCanvas.height=H;
 
 /* 유리 */
 const glass=document.getElementById("glass");
-
-glCanvas.addEventListener("mousemove",(e)=>{
+glCanvas.onmousemove=e=>{
     const r=glCanvas.getBoundingClientRect();
     let gx=(e.clientX-r.left)/r.width*100;
     let gy=(e.clientY-r.top)/r.height*100;
 
-    glass.style.background =
+    glass.style.background=
     `radial-gradient(circle at ${gx}% ${gy}%,
     rgba(255,255,255,0.25),
-    rgba(255,255,255,0.05) 30%,
     transparent 60%)`;
-});
+};
 
-/* UI */
 function drawCRT(){
     ctx.fillStyle="#05060a";
     ctx.fillRect(0,0,W,H);
@@ -160,7 +174,7 @@ function drawCRT(){
     ctx.fillStyle="#fff";
     ctx.textAlign="center";
     ctx.font="bold 70px monospace";
-    ctx.fillText("CRT SCREEN",400,260);
+    ctx.fillText("CRT SPACE",400,260);
 }
 
 /* WebGL */
@@ -243,13 +257,11 @@ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
 
 const timeLoc=gl.getUniformLocation(prog,"time");
 
-/* =========================
-   LOOP
-========================= */
+/* LOOP */
 function loop(t){
 
-drawBG();     // 🌌 배경 먼저
-drawCRT();    // 📺 CRT 내용
+drawBG();
+drawCRT();
 
 gl.viewport(0,0,W,H);
 gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bufCanvas);
