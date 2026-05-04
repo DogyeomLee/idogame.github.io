@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>FULL CRT</title>
+<title>CRT SOFT FRAME</title>
 
 <style>
 body{
     margin:0;
-    background:black;
+    background:#05060a; /* CRT랑 거의 동일 */
     display:flex;
     justify-content:center;
     align-items:center;
@@ -15,12 +15,19 @@ body{
     overflow:hidden;
 }
 
-/* 📺 화면만 */
+/* 📺 CRT 영역 */
 #screen{
     position:relative;
     aspect-ratio:4/3;
-    width:100vw;
-    max-height:100vh;
+
+    /* 🔥 너무 크지 않게 */
+    width:90vw;
+    max-height:90vh;
+
+    /* 🔥 테두리 없이 자연스러운 떠있는 느낌 */
+    box-shadow:
+        0 0 80px rgba(0,0,0,0.8),
+        0 0 20px rgba(255,255,255,0.03);
 }
 
 canvas{
@@ -69,9 +76,9 @@ glCanvas.addEventListener("mousemove",(e)=>{
 
     glass.style.background =
     `radial-gradient(circle at ${gx}% ${gy}%,
-    rgba(255,255,255,0.15),
-    rgba(255,255,255,0.03) 30%,
-    transparent 65%)`;
+    rgba(255,255,255,0.12),
+    rgba(255,255,255,0.02) 30%,
+    transparent 70%)`;
 });
 
 /* UI */
@@ -82,10 +89,10 @@ function draw(){
     ctx.fillStyle="#fff";
     ctx.textAlign="center";
     ctx.font="bold 70px monospace";
-    ctx.fillText("FULL CRT",400,260);
+    ctx.fillText("CRT SCREEN",400,260);
 
     ctx.font="18px monospace";
-    ctx.fillText("NO BORDER MODE",400,320);
+    ctx.fillText("SOFT FRAME MODE",400,320);
 }
 
 /* WebGL */
